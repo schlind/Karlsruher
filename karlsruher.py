@@ -57,7 +57,7 @@ class Bot:
 				continue
 
 			if str(mention.in_reply_to_status_id_str) and str(mention.in_reply_to_status_id_str) != 'None':
-				self.log('is a reply from hell.' + str(mention.in_reply_to_status_id_str))
+				self.log('is a reply from hell.')
 				continue
 
 			if str(mention.user.protected) == 'True':
