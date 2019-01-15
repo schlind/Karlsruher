@@ -16,7 +16,7 @@ class Bot:
 
 		self.sqlite3 = sqlite3.connect( self.botname + '.db')
 		self.sqlite3.cursor().execute('CREATE TABLE IF NOT EXISTS retweets (tweetid PRIMARY KEY)')
-		#self.sqlite3.cursor().execute('CREATE TABLE IF NOT EXISTS mute (screen_name PRIMARY KEY)')
+		self.sqlite3.cursor().execute('CREATE TABLE IF NOT EXISTS muted (screen_name PRIMARY KEY, timeout INTEGER NOT NULL)')
 
 		self.sqlite3.commit()
 
@@ -65,6 +65,8 @@ class Bot:
 				message = 'Hallo, ich retweete keine privaten Nutzer.'
 				self.twitter.update_status('@' + mention.user.screen_name + ' ' + message, mention.id)
 				continue
+
+			## TODO Reizwort: Relevanz für einen RT entscheiden. :)
 
 			self.log('retweeting!')
 			self.twitter.retweet(mention.id)
