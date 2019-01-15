@@ -56,16 +56,16 @@ class Bot:
 				self.log('is by myself, oops.')
 				continue
 
-			if str(mention.in_reply_to_status_id_str):
-				self.log('is a reply from hell.')
-				continue
-
-			if self.__haveRetweeted(mention):
-				self.log('read before.')
+			if str(mention.in_reply_to_status_id_str) and str(mention.in_reply_to_status_id_str) != 'None':
+				self.log('is a reply from hell.' + str(mention.in_reply_to_status_id_str))
 				continue
 
 			if str(mention.user.protected) == 'True':
 				self.log('is private.')
+				continue
+
+			if self.__haveRetweeted(mention):
+				self.log('read before.')
 				continue
 
 			self.log('retweeting!')
