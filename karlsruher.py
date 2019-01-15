@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import sqlite3
 
@@ -16,7 +17,7 @@ class Bot:
 
 		self.log('I am ' + self.botname)
 
-		self.sqlite3 = sqlite3.connect( self.botname + '.db')
+		self.sqlite3 = sqlite3.connect(os.path.dirname(os.path.realpath(__file__)) + '/' + self.botname + '.db')
 		self.sqlite3.cursor().execute('CREATE TABLE IF NOT EXISTS retweets (tweetid PRIMARY KEY)')
 		self.sqlite3.cursor().execute('CREATE TABLE IF NOT EXISTS muted (screen_name PRIMARY KEY, timeout INTEGER NOT NULL)')
 
