@@ -25,6 +25,7 @@ class twitter:
 		pTweet = mock()
 		pTweet.id = 4711
 		pTweet.user = pUser
+		pTweet.in_reply_to_status_id_str = ''
 
 		u = mock()
 		u.screen_name = "Laberbacke"
@@ -33,6 +34,7 @@ class twitter:
 		t = mock()
 		t.id = 1234
 		t.user = u
+		t.in_reply_to_status_id_str = 'Banane'
 
 		return [ pTweet, t ]
 

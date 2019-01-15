@@ -14,6 +14,8 @@ class Bot:
 		self.twitter = twitter
 		self.botname = twitter.me().screen_name
 
+		self.log('I am ' + self.botname)
+
 		self.sqlite3 = sqlite3.connect( self.botname + '.db')
 		self.sqlite3.cursor().execute('CREATE TABLE IF NOT EXISTS retweets (tweetid PRIMARY KEY)')
 		self.sqlite3.cursor().execute('CREATE TABLE IF NOT EXISTS muted (screen_name PRIMARY KEY, timeout INTEGER NOT NULL)')
@@ -44,7 +46,7 @@ class Bot:
 
 	def readMentions(self):
 
-		self.log('Reading mentions for ' + self.botname)
+		## See https://developer.twitter.com/en/docs/tweets/timelines/api-reference/get-statuses-mentions_timeline
 
 		for mention in self.twitter.mentions_timeline():
 
@@ -54,21 +56,21 @@ class Bot:
 				self.log('is by myself, oops.')
 				continue
 
+			if str(mention.in_reply_to_status_id_str):
+				self.log('is a reply from hell.')
+				continue
+
 			if self.__haveRetweeted(mention):
 				self.log('read before.')
 				continue
 
-			self.__rememberTweet(mention)
-
 			if str(mention.user.protected) == 'True':
 				self.log('is private.')
-				message = 'Hallo, ich retweete keine privaten Nutzer.'
-				self.twitter.update_status('@' + mention.user.screen_name + ' ' + message, mention.id)
 				continue
 
-			## TODO Reizwort: Relevanz für einen RT entscheiden. :)
-
 			self.log('retweeting!')
+
+			self.__rememberTweet(mention)
 			self.twitter.retweet(mention.id)
 
 		self.log('Read all mentions.' )
