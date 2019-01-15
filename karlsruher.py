@@ -21,6 +21,11 @@ class Bot:
 		self.sqlite3.commit()
 
 
+	def __del__(self):
+		self.sqlite3.close()
+		self.log('Bye.' )
+
+
 	def log(self, message, lineend='\n'):
 		sys.stdout.write(message + lineend)
 		sys.stdout.flush()
@@ -64,5 +69,4 @@ class Bot:
 			self.log('retweeting!')
 			self.twitter.retweet(mention.id)
 
-		self.sqlite3.close()
-		self.log('Read all mentions, bye.' )
+		self.log('Read all mentions.' )
