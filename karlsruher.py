@@ -104,14 +104,20 @@ class Bot:
 		"""Let me send a Tweet."""
 		self.__log('-> TWEET "' + message + '"')
 		if not self.ismuted:
-			self.twitter.update_status(message)
+			try:
+				self.twitter.update_status(message)
+			except TweepError as e:
+				self.__log("TweepError, I don't care: " + str(e))
 
 
 	def __reply(self, tweet, message):
 		"""Let me reply to the given Tweet."""
 		self.__log('-> TWEET "' + message + '" (to tweetid ' + str(tweet.id) +')')
 		if not self.ismuted:
-			self.twitter.update_status(message, tweet.id)
+			try:
+				self.twitter.update_status(message, tweet.id)
+			except TweepError as e:
+				self.__log("TweepError, I don't care: " + str(e))
 
 
 
@@ -133,13 +139,6 @@ class Bot:
 
 			advise = message[len(trigger):].strip().split()
 
-			if len(advise) == 1:
-
-				if advise[0].strip() == 'ping':
-					self.__log('Ping? Pong! @' + tweet.user.screen_name)
-					self.__reply(tweet, 'Pong!')
-					return True
-
 			if len(advise) == 2:
 
 				action = advise[0].strip()
@@ -147,13 +146,19 @@ class Bot:
 
 				self.__log('action ' + action + ' @' + victim)
 
-				if action == 'mute':
-					self.twitter.create_mute(screen_name = victim)
-					return True
+				try:
 
-				if action == 'unmute':
-					self.twitter.destroy_mute(screen_name = victim)
-					return True
+					if action == 'mute':
+						self.twitter.create_mute(screen_name = victim)
+						return True
+
+					if action == 'unmute':
+						self.twitter.destroy_mute(screen_name = victim)
+						return True
+
+				except TweepError as e:
+					self.__log("TweepError, I don't care: " + str(e))
+
 
 		return False
 
@@ -200,7 +205,11 @@ class Bot:
 		self.__log('retweeting!')
 		self.__rememberRetweet(mention)
 		if not self.ismuted:
-			self.twitter.retweet(tweet.id)
+			try:
+				self.twitter.retweet(tweet.id)
+			except TweepError as e:
+				self.__log("TweepError, I don't care: " + str(e))
+
 
 
 	def __rememberRetweet(self, tweet):
