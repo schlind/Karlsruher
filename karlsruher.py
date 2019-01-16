@@ -158,7 +158,9 @@ class Bot:
 
 				except TweepError as e:
 					self.__log("TweepError, I don't care: " + str(e))
+					return True
 
+		self.__log('no action.')
 
 		return False
 
