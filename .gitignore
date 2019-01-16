@@ -1,4 +1,5 @@
 *.db
-*.pyc
 *.DS_Store
+*.log
+*.pyc
 credentials.py
