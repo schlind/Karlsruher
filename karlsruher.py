@@ -127,7 +127,7 @@ class Bot:
 			return False
 
 		trigger = str('@' + self.botname + '!').lower()
-		message = str(tweet.text)
+		message = tweet.text
 
 		if message.lower().startswith(trigger):
 
