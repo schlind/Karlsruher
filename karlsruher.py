@@ -20,7 +20,6 @@ class Bot:
 
 
 	def __init__(self, twitter):
-
 		"""
 		Wake me up!
 
@@ -78,12 +77,15 @@ class Bot:
 		"""
 		for mention in self.twitter.mentions_timeline():
 
-			self.__log('+ Reading https://twitter.com/' + str(mention.user.screen_name) + '/status/' + str(mention.id))
+			self.__log('+ Reading https://twitter.com/' + mention.user.screen_name + '/status/' + str(mention.id))
 
-			if self.__actOnAdvise(mention):
-				continue
+			try:
+				if self.__adviseAction(mention):
+					continue
+				self.__retweetAction(mention)
 
-			self.__retweetAction(mention)
+			except Exception as e:
+				self.__log('Exception: ' + str(e))
 
 		self.__log('Read all mentions.' )
 
@@ -122,7 +124,7 @@ class Bot:
 
 
 
-	def __actOnAdvise(self, tweet):
+	def __adviseAction(self, tweet):
 		"""
 		I will act on advise and return True if there was any action.
 		"""
