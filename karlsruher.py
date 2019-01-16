@@ -3,12 +3,14 @@
 import os
 import sys
 import sqlite3
+import datetime
 
 class Bot:
 
 	botname = None
 	twitter = None
 	sqlite3 = None
+	timenow = str(datetime.datetime.now())
 
 	def __init__(self, twitter):
 
@@ -30,7 +32,7 @@ class Bot:
 
 
 	def log(self, message, lineend='\n'):
-		sys.stdout.write(message + lineend)
+		sys.stdout.write(self.timenow + ' ' + message + lineend)
 		sys.stdout.flush()
 
 
