@@ -149,12 +149,10 @@ class Bot:
 
 				if action == 'mute':
 					self.twitter.create_mute(screen_name = victim)
-					self.__reply(tweet, '@' + tweet.user.screen_name + ' ok.')
 					return True
 
 				if action == 'unmute':
 					self.twitter.destroy_mute(screen_name = victim)
-					self.__reply(tweet, '@' + tweet.user.screen_name + ' ok.')
 					return True
 
 		return False
