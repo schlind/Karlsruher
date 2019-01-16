@@ -6,6 +6,7 @@ from os import path
 from sys import stdout
 
 class Bot:
+
 	"""
 	Hello, I am a Twitter Bot and I want to help.
 	Therefore I read my timelines and behave well.
@@ -17,6 +18,9 @@ class Bot:
 	botname = 'will be taken from my Twitter account'
 	twitter = None
 	sqlite3 = None
+	advisor = []
+
+
 
 
 	def __init__(self, twitter):
@@ -34,60 +38,42 @@ class Bot:
 		Read, understand, act. Once you've got me as an object, just
 		call the heartBeat definition.
 		"""
-
 		self.twitter = twitter
 		self.botname = twitter.me().screen_name
-
 		self.__log(self.timenow + ' Hello, I am ' + self.botname + '.')
-
-		databaseFile = path.dirname(path.realpath(__file__)) + '/' + self.botname.lower() + '.db'
-		self.__log('I am using file "' + databaseFile + '" as database.')
-		self.sqlite3 = sqlite3.connect(databaseFile)
-		self.sqlite3.cursor().execute('CREATE TABLE IF NOT EXISTS retweets (tweetid PRIMARY KEY)')
-		self.sqlite3.commit()
+		self.__initDatabase(path.dirname(path.realpath(__file__)) + '/' + self.botname.lower() + '.db')
+		self.__readAdvisorMembers()
 
 
 	def __del__(self):
-		"""Let me close resources."""
+		"""
+		Let me sleep.
+		"""
 		self.sqlite3.close()
-		self.__log('Bye.' )
+		self.__log('Bye.')
 
 
-
-
-	def heartBeat(self, readonly=True):
+	def __initDatabase(self, database):
 		"""
-		Give me a heartbeat from time to time!
-		I'm not looking for work unless being heartly beaten.
+		Let me have a brain.
 		"""
-		self.__log('I received a heartbeat, will look for work now...')
-		self.ismuted = readonly
-		if self.ismuted:
-			self.__log('I am MUTED, not talking to twitter this time.')
-		self.__houseKeeping()
-		self.__readMentions()
+		self.__log('I am using file "' + database + '" as brain.')
+		self.sqlite3 = sqlite3.connect(database)
+		self.sqlite3.cursor().execute('CREATE TABLE IF NOT EXISTS tweets (tweetid PRIMARY KEY)')
+		self.sqlite3.commit()
 
 
+	def __rememberTweet(self, tweet):
+		"""Remember that I read the given tweet."""
+		self.sqlite3.cursor().execute('INSERT OR IGNORE INTO tweets VALUES (?)', (str(tweet.id),))
+		self.sqlite3.commit()
 
 
-	def __readMentions(self):
-		"""
-		Let me read my latest mentions and delegate further action.
-		https://developer.twitter.com/en/docs/tweets/timelines/api-reference/get-statuses-mentions_timeline
-		"""
-		for mention in self.twitter.mentions_timeline():
-
-			self.__log('+ Reading https://twitter.com/' + mention.user.screen_name + '/status/' + str(mention.id))
-
-			try:
-				if self.__adviseAction(mention):
-					continue
-				self.__retweetAction(mention)
-
-			except Exception as e:
-				self.__log('Exception: ' + str(e))
-
-		self.__log('Read all mentions.' )
+	def __haveReadTweet(self, tweet):
+		"""Tell whether or not I already read the given tweet."""
+		cursor = self.sqlite3.cursor()
+		cursor.execute('SELECT tweetid FROM tweets WHERE tweetid = ?', (str(tweet.id),))
+		return cursor.fetchone() != None
 
 
 	def __houseKeeping(self):
@@ -102,24 +88,71 @@ class Bot:
 		stdout.flush()
 
 
+	def __retweet(self, tweet):
+		"""
+		Let me retweet a Tweet.
+		"""
+		self.__log('-> RETWEET ' + str(tweet.id))
+		if not self.ismuted:
+			try:
+				self.twitter.retweet(tweet.id)
+			except Exception as e:
+				# expect errors when retweeting a tweet twice
+				self.__log("Exception, I don't care: " + str(e))
+
+
 	def __tweet(self, message):
-		"""Let me send a Tweet."""
+		"""
+		Let me send a Tweet.
+		"""
 		self.__log('-> TWEET "' + message + '"')
 		if not self.ismuted:
 			try:
 				self.twitter.update_status(message)
-			except TweepError as e:
-				self.__log("TweepError, I don't care: " + str(e))
+			except Exception as e:
+				self.__log("Exception, I don't care: " + str(e))
 
 
 	def __reply(self, tweet, message):
-		"""Let me reply to the given Tweet."""
+		"""
+		Let me reply to a Tweet.
+		"""
 		self.__log('-> TWEET "' + message + '" (to tweetid ' + str(tweet.id) +')')
 		if not self.ismuted:
 			try:
 				self.twitter.update_status(message, tweet.id)
-			except TweepError as e:
-				self.__log("TweepError, I don't care: " + str(e))
+			except Exception as e:
+				self.__log("Exception, I don't care: " + str(e))
+
+
+	def __readMentions(self):
+		"""
+		Let me read my latest mentions and delegate further action.
+		https://developer.twitter.com/en/docs/tweets/timelines/api-reference/get-statuses-mentions_timeline
+		"""
+		for mention in self.twitter.mentions_timeline():
+			self.__readMention(mention)
+		self.__log('Read all mentions.' )
+
+
+	def __readMention(self, mention):
+		"""
+		Let me read a single mention.
+		"""
+		self.__log('+ Reading https://twitter.com/' + mention.user.screen_name + '/status/' + str(mention.id))
+
+		if self.__haveReadTweet(mention):
+			self.__log('-> Tweet was read before, no action.')
+			return
+
+		self.__rememberTweet(mention)
+
+		try:
+			if self.__adviseAction(mention):
+				return
+			self.__retweetAction(mention)
+		except Exception as e:
+			self.__log('Exception: ' + str(e))
 
 
 
@@ -128,11 +161,10 @@ class Bot:
 		"""
 		I will act on advise and return True if there was any action.
 		"""
-		self.__log('-> Checking for advise', '...')
-
-		if not self.__isAdvisor(tweet.user):
-			self.__log(tweet.user.screen_name + ' is not my advisor.')
+		if not self.__isAdvisor(tweet.user.screen_name):
 			return False
+
+		self.__log('-> Checking for advise from ' + tweet.user.screen_name , '... ')
 
 		trigger = str('@' + self.botname + '!').lower()
 		message = tweet.text
@@ -146,7 +178,7 @@ class Bot:
 				action = advise[0].strip()
 				victim = advise[1].strip()
 
-				self.__log('action ' + action + ' @' + victim)
+				self.__log(action + ' @' + victim)
 
 				try:
 
@@ -158,8 +190,9 @@ class Bot:
 						self.twitter.destroy_mute(screen_name = victim)
 						return True
 
-				except TweepError as e:
-					self.__log("TweepError, I don't care: " + str(e))
+				except Exception as e:
+					# expect errors when muting muted and unmuting unmuted users
+					self.__log("Exception, I don't care: " + str(e))
 					return True
 
 		self.__log('no action.')
@@ -167,13 +200,28 @@ class Bot:
 		return False
 
 
-	def __isAdvisor(self, user):
-		"""Indicate whether or not the specified user is an advisor to me.
-
-		TODO This has to be a group of people, maybe a list in DB or at
-		twitter.
+	def __isAdvisor(self, user_screen_name):
 		"""
-		return user.screen_name.lower() == 'schlind'
+		Indicate whether or not the specified user is an advisor to me.
+		"""
+		removeme = user_screen_name == 'schlind'
+		if removeme or user_screen_name in self.advisor:
+			return True
+
+		return False
+
+
+	def __readAdvisorMembers(self):
+		"""
+		Let me read the members of the advisor list.
+		"""
+		try:
+			for user in self.twitter.list_members(self.botname, 'advisor'):
+				self.advisor.append(str(user.screen_name))
+		except Exception as e:
+			self.__log('Exception: ' + str(e))
+
+		self.__log('I accept advise from ' + str(self.advisor))
 
 
 
@@ -188,7 +236,8 @@ class Bot:
 		* are by private users (applied DSGVO).
 		* were read/retweeted by me before.
 		"""
-		self.__log('-> Checking for retweet', '...')
+
+		self.__log('-> Checking for retweet', '... ')
 
 		if str(mention.user.screen_name) == self.botname:
 			self.__log('is by myself, oops, no retweet.')
@@ -202,28 +251,21 @@ class Bot:
 			self.__log('is private, no retweet.')
 			return
 
-		if self.__haveRetweeted(mention):
-			self.__log('was read before, no retweet.')
-			return
-
-		self.__log('retweeting!')
-		self.__rememberRetweet(mention)
-		if not self.ismuted:
-			try:
-				self.twitter.retweet(tweet.id)
-			except TweepError as e:
-				self.__log("TweepError, I don't care: " + str(e))
+		self.__retweet(mention)
 
 
 
-	def __rememberRetweet(self, tweet):
-		"""Remember that I retweeted the given tweet."""
-		self.sqlite3.cursor().execute('INSERT OR IGNORE INTO retweets VALUES (?)', (str(tweet.id),))
-		self.sqlite3.commit()
 
+	def heartBeat(self, readonly=True):
+		"""
+		Give me a heartbeat from time to time!
+		I'm not looking for work unless being heartly beaten.
+		"""
+		self.__log('I received a heartbeat, will look for tweets now...')
 
-	def __haveRetweeted(self, tweet):
-		"""Tell whether or not I already retweeted the given tweet."""
-		cursor = self.sqlite3.cursor()
-		cursor.execute('SELECT tweetid FROM retweets WHERE tweetid = ?', (str(tweet.id),))
-		return cursor.fetchone() != None
+		self.ismuted = readonly
+		if self.ismuted:
+			self.__log('I am MUTED, not talking to twitter this time.')
+
+		self.__houseKeeping()
+		self.__readMentions()

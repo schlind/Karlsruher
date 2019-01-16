@@ -39,5 +39,4 @@ else:
 	twitter = tweepy.API(auth)
 
 
-runner = karlsruher.Bot(twitter)
-runner.heartBeat(READ_ONLY)
+karlsruher.Bot(twitter).heartBeat(READ_ONLY)

@@ -30,8 +30,8 @@ class twitter:
 			## Feature "advise"
 			self.__mockATweet(101,None,'schlind',False,'@MoCkBot! Das ist kein Kommando.'),
 			self.__mockATweet(102,None,'schlind',False,'@MockBot! ping'),
-			self.__mockATweet(103,None,'SchLind',False,'@MockBot!mute Laberbacke '),
-			self.__mockATweet(104,None,'SCHLIND',False,'@MockBot! unmute Laberbacke '),
+			self.__mockATweet(103,None,'schlind',False,'@MockBot!mute Laberbacke '),
+			self.__mockATweet(104,None,'schlind',False,'@MockBot! unmute Laberbacke '),
 			self.__mockATweet(100,None,'nobody',False,'@MockBot! ping'),
 			## Feature "retweet"
 			self.__mockATweet(1000001,None,'public_user',False),
