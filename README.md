@@ -22,7 +22,7 @@ Die Idee und eine Urimplementierung dieses Bots stammt von [Marco, \@syn2](https
 
 ## Code Quick & Dirty, mitmachen?
 
-Der Code hier ist ein spontaner Rewrite auf Basis von Marcos Code, zwei Tassen Kaffee und circa 4 Stunden Python lernen, weil das mein erster Kontakt mit Python ist. Ich hoffe, man kann den Code gut lesen, aber er funktioniert! Fehlerhandling (fehlende Datei usw.) mache ich selbstverständlich später vielleicht noch.
+Der Code hier ist ein spontaner Rewrite auf Basis von Marcos Code, zwei Tassen Kaffee und circa 8 Stunden Python lernen, weil das mein erster Kontakt mit Python ist. Ich hoffe, man kann den Code gut lesen, aber er funktioniert! Fehlerhandling (fehlende Datei usw.) mache ich selbstverständlich später vielleicht noch.
 
 Keine Lizenz, keine Garantie, keine Zeit für Support.
 
