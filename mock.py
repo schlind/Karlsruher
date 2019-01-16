@@ -49,3 +49,7 @@ class twitter:
 		pass
 	def destroy_mute(self, screen_name):
 		pass
+	def list_members(self, screen_name, list_slug):
+		advisor = mock()
+		advisor.screen_name = 'schlind'
+		return [ advisor ]
