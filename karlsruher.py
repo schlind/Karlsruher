@@ -274,14 +274,14 @@ class Bot:
 	def houseKeeping(self):
 		"""Let me take care of things that are not triggered by tweets."""
 
-		if True or self.timenow.hour == 1 and self.timenow.minute <= 5:
-			self.log('I am fetching my followers, this may take a while.', '')
-			self.twitter.followers.pagination_mode='cursor'
-			for follower in tweepy.Cursor(self.twitter.followers).items():
-				self.log('+','')
-				self.db.cursor().execute('INSERT OR IGNORE INTO followers VALUES (?,?)', (str(follower.id),str(follower.screen_name)))
-				self.db.commit()
-			self.log('done.')
+#		if self.timenow.hour == 1 and self.timenow.minute <= 5:
+		self.log('I am fetching my followers, this may take a while.', '')
+		self.twitter.followers.pagination_mode='cursor'
+		for follower in tweepy.Cursor(self.twitter.followers).items():
+			self.log('+','')
+			self.db.cursor().execute('INSERT OR IGNORE INTO followers VALUES (?,?)', (str(follower.id),str(follower.screen_name)))
+			self.db.commit()
+		self.log('done.')
 
 
 		self.followers = []
@@ -348,11 +348,13 @@ class BotTest(TestCase):
 
 		bot = self.bot
 
+		realCursor = tweepy.Cursor.items
 		tweepy.Cursor.items = mock.MagicMock(return_value=[
 			mock.Mock(id=1, screen_name = 'follower1'),
 			mock.Mock(id=2, screen_name = 'follower2')
 		])
 		bot.houseKeeping()
+		tweepy.Cursor.items = realCursor
 
 		self.assertFalse(
 			bot.retweetAction(
