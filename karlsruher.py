@@ -295,6 +295,10 @@ class Bot:
 
 		if self.timenow.hour == 1 and self.timenow.minute <= 5:
 			self.log('I am fetching my followers, this may take a while.', '')
+
+			self.db.cursor().execute('DELETE FROM followers')
+			self.db.commit()
+
 			self.twitter.followers.pagination_mode='cursor'
 			for follower in tweepy.Cursor(self.twitter.followers).items():
 				self.log('+','')
