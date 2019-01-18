@@ -1,173 +1,177 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import sqlite3
+
 from datetime import datetime
-from os import path
-from sys import stdout
+from os import path, remove
+from sys import version_info, argv, stdout, exit
+assert version_info >= (3, 7)
+from unittest import TestCase, TestSuite, TextTestRunner, mock
+import sqlite3
+import tweepy
+
+
+def Karlsruher(arguments):
+	suite = TestSuite()
+	suite.addTest(BotTest('test_bot_can_init'))
+	suite.addTest(BotTest('test_bot_can_handle_lockfile'))
+	suite.addTest(BotTest('test_bot_can_handle_advise'))
+	suite.addTest(BotTest('test_bot_can_retweet'))
+	TextTestRunner().run(suite)
+	if not '-test' in arguments:
+		bot = Bot()
+		bot.readOnly = '-talk' not in arguments
+		bot.run()
+
 
 class Bot:
 
-	"""
-	Hello, I am a Twitter Bot and I want to help.
-	Therefore I read my timelines and behave well.
-	"""
-
-
-	ismuted = True
-	timenow = str(datetime.now())
-	botname = 'will be taken from my Twitter account'
+	readOnly=True
+	homedir = path.dirname(path.realpath(__file__))
+	timenow = datetime.now()
 	twitter = None
-	sqlite3 = None
-	advisor = []
+	botname = None
+	db = None
+	advisors = []
+	followers = []
 
 
+	def __init__(self, twitter = None):
 
+		if twitter:
+			self.twitter = twitter
 
-	def __init__(self, twitter):
-		"""
-		Wake me up!
+		else:
+			credentials = self.homedir + '/credentials.py'
+			if not path.isfile(credentials):
+				self.log('Ooops, missing file: ' + credentials)
+				self.log('Please use the .example and your own API keys to create this file.')
+				exit(1)
+			from credentials import TWITTER_CONSUMER_KEY
+			from credentials import TWITTER_CONSUMER_SECRET
+			from credentials import TWITTER_ACCESS_KEY
+			from credentials import TWITTER_ACCESS_SECRET
 
-		I need at least a twitter client and expect something like
-		the "tweepy" Twitter API adapter thingy to read from and
-		write to Twitter.
+			oauth = tweepy.OAuthHandler(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET)
+			oauth.set_access_token(TWITTER_ACCESS_KEY, TWITTER_ACCESS_SECRET)
 
-		I am muted (reading and acting real internally, but without
-		writing to Twitter) by default. If you want me to really talk,
-		give readonly=False.
+			self.twitter = tweepy.API(
+				oauth,
+				wait_on_rate_limit=True,
+				wait_on_rate_limit_notify=True,
+				compression=True
+			)
 
-		Read, understand, act. Once you've got me as an object, just
-		call the heartBeat definition.
-		"""
-		self.twitter = twitter
-		self.botname = twitter.me().screen_name
-		self.__log(self.timenow + ' Hello, I am ' + self.botname + '.')
-		self.__initDatabase(path.dirname(path.realpath(__file__)) + '/' + self.botname.lower() + '.db')
-		self.__readAdvisorMembers()
+		self.botname = self.twitter.me().screen_name
+		self.log('I am ' + self.botname + '.')
+		self.initAdvisor()
+		self.initDatabase()
 
 
 	def __del__(self):
-		"""
-		Let me sleep.
-		"""
-		self.sqlite3.close()
-		self.__log('Bye.')
+		pass
 
 
-	def __initDatabase(self, database):
-		"""
-		Let me have a brain.
-		"""
-		self.__log('I am using file "' + database + '" as brain.')
-		self.sqlite3 = sqlite3.connect(database)
-		self.sqlite3.cursor().execute('CREATE TABLE IF NOT EXISTS tweets (tweetid PRIMARY KEY)')
-		self.sqlite3.commit()
-
-
-	def __rememberTweet(self, tweet):
-		"""Remember that I read the given tweet."""
-		self.sqlite3.cursor().execute('INSERT OR IGNORE INTO tweets VALUES (?)', (str(tweet.id),))
-		self.sqlite3.commit()
-
-
-	def __haveReadTweet(self, tweet):
-		"""Tell whether or not I already read the given tweet."""
-		cursor = self.sqlite3.cursor()
-		cursor.execute('SELECT tweetid FROM tweets WHERE tweetid = ?', (str(tweet.id),))
-		return cursor.fetchone() != None
-
-
-	def __houseKeeping(self):
-		"""Let me take care of things that are not triggered by tweets."""
-		self.__log('I do not have any housekeeping to do.')
-		return
-
-
-	def __log(self, message, lineend='\n'):
+	def log(self, message, lineend='\n'):
 		"""May use a framework later, lol."""
 		stdout.write(message + lineend)
 		stdout.flush()
 
+	def lockFile(self):
+		return self.homedir + '/.lock.'+ self.botname
 
-	def __retweet(self, tweet):
-		"""
-		Let me retweet a Tweet.
-		"""
-		self.__log('-> RETWEET ' + str(tweet.id))
-		if not self.ismuted:
-			try:
-				self.twitter.retweet(tweet.id)
-			except Exception as e:
-				# expect errors when retweeting a tweet twice
-				self.__log("Exception, I don't care: " + str(e))
+	def databaseFile(self):
+		return self.homedir + '/'+ self.botname + '.db'
 
+	def initDatabase(self):
+		database = self.databaseFile()
+		self.log('I am using file "' + database + '" as database.')
+		self.db = sqlite3.connect(database)
+		self.db.row_factory = sqlite3.Row
+		self.db.cursor().execute('CREATE TABLE IF NOT EXISTS tweets (tweetid PRIMARY KEY)')
+		self.db.cursor().execute('CREATE TABLE IF NOT EXISTS followers (uid PRIMARY KEY, screen_name VARCHAR NOT NULL)')
+		self.db.commit()
 
-	def __tweet(self, message):
-		"""
-		Let me send a Tweet.
-		"""
-		self.__log('-> TWEET "' + message + '"')
-		if not self.ismuted:
-			try:
-				self.twitter.update_status(message)
-			except Exception as e:
-				self.__log("Exception, I don't care: " + str(e))
+	def initAdvisor(self):
+		"""Twitter API: list_members."""
+		self.advisors = []
+		try:
+			for user in self.twitter.list_members(self.botname, 'advisor'):
+				self.advisors.append(str(user.screen_name))
+		except Exception as e:
+			# Expected from any API call.
+			self.log('Exception: ' + str(e))
 
-
-	def __reply(self, tweet, message):
-		"""
-		Let me reply to a Tweet.
-		"""
-		self.__log('-> TWEET "' + message + '" (to tweetid ' + str(tweet.id) +')')
-		if not self.ismuted:
-			try:
-				self.twitter.update_status(message, tweet.id)
-			except Exception as e:
-				self.__log("Exception, I don't care: " + str(e))
+		self.log('I accept advise from ' + str(self.advisors))
 
 
-	def __readMentions(self):
-		"""
-		Let me read my latest mentions and delegate further action.
-		https://developer.twitter.com/en/docs/tweets/timelines/api-reference/get-statuses-mentions_timeline
-		"""
+	def run(self):
+		self.log('I start a run now: ' + str(self.timenow))
+		if self.readOnly == True:
+			self.log('I am READ ONLY, not talking to twitter this time.')
+		else:
+			self.log('I am TALKING to twitter this time.')
+
+		lockfile = self.lockFile()
+		if path.isfile(lockfile):
+			self.log('Aborting, lock file present: ' + lockfile)
+			exit(0)
+		open(lockfile, 'a').close()
+
+		self.houseKeeping()
+
+		# https://developer.twitter.com/en/docs/tweets/timelines/api-reference/get-statuses-mentions_timeline
 		for mention in self.twitter.mentions_timeline():
-			self.__readMention(mention)
-		self.__log('Read all mentions.' )
+			self.readMention(mention)
+		self.log('Read all mentions.')
+
+		if path.isfile(lockfile):
+			remove(lockfile)
+		self.log('Bye.')
 
 
-	def __readMention(self, mention):
-		"""
-		Let me read a single mention.
-		"""
-		self.__log('+ Reading https://twitter.com/' + mention.user.screen_name + '/status/' + str(mention.id))
+	def rememberTweet(self, tweet):
+		"""Remember that I read the given tweet."""
+		self.db.cursor().execute('INSERT OR IGNORE INTO tweets VALUES (?)', (str(tweet.id),))
+		self.db.commit()
 
-		if self.__haveReadTweet(mention):
-			self.__log('-> Tweet was read before, no action.')
+
+	def haveReadTweet(self, tweet):
+		"""Tell whether or not I already read the given tweet."""
+		cursor = self.db.cursor()
+		cursor.execute('SELECT tweetid FROM tweets WHERE tweetid = ?', (str(tweet.id),))
+		return cursor.fetchone() != None
+
+
+	def readMention(self, mention):
+
+		self.log('+ Reading https://twitter.com/' + mention.user.screen_name + '/status/' + str(mention.id))
+
+		if self.haveReadTweet(mention):
+			self.log('-> Tweet was read before, no action.')
 			return
 
-		self.__rememberTweet(mention)
+		self.rememberTweet(mention)
 
 		try:
-			if self.__adviseAction(mention):
+			if self.adviseAction(mention):
 				return
-			self.__retweetAction(mention)
+			self.retweetAction(mention)
+
 		except Exception as e:
-			self.__log('Exception: ' + str(e))
+			self.log('Exception: ' + str(e))
 
 
 
 
-	def __adviseAction(self, tweet):
-		"""
-		I will act on advise and return True if there was any action.
-		"""
-		if not self.__isAdvisor(tweet.user.screen_name):
+
+
+	def adviseAction(self, tweet):
+
+		if not tweet.user.screen_name in self.advisors:
 			return False
 
-		self.__log('-> Checking for advise from ' + tweet.user.screen_name , '... ')
-
 		trigger = str('@' + self.botname + '!').lower()
-		message = tweet.text
+		message = str(tweet.text)
 
 		if message.lower().startswith(trigger):
 
@@ -175,97 +179,226 @@ class Bot:
 
 			if len(advise) == 2:
 
-				action = advise[0].strip()
-				victim = advise[1].strip()
+				action = advise[0].strip().lower()
+				subject = advise[1].strip()
 
-				self.__log(action + ' @' + victim)
+				if subject in self.advisors:
+					self.log('ignoring: ' + action + ' @' + subject)
+					return True
+
+				self.log(action + ' @' + subject)
 
 				try:
 
+					if action == 'sleep':
+						self.log("" + int(subject))
+						self.reply(tweet, 'Danke, ich lege mich schlafen.')
+						return True
+
 					if action == 'mute':
-						self.twitter.create_mute(screen_name = victim)
+						self.twitter.create_mute(screen_name = subject)
+						self.reply(tweet, 'Danke, ich lese ' + subject + ' nicht mehr.')
 						return True
 
 					if action == 'unmute':
-						self.twitter.destroy_mute(screen_name = victim)
+						self.twitter.destroy_mute(screen_name = subject)
+						self.reply(tweet, 'Danke, ich lese ' + subject + ' wieder.')
 						return True
 
 				except Exception as e:
-					# expect errors when muting muted and unmuting unmuted users
-					self.__log("Exception, I don't care: " + str(e))
+					self.log("Exception: " + str(e))
 					return True
 
-		self.__log('no action.')
-
 		return False
 
 
-	def __isAdvisor(self, user_screen_name):
-		"""
-		Indicate whether or not the specified user is an advisor to me.
-		"""
-		removeme = user_screen_name == 'schlind'
-		if removeme or user_screen_name in self.advisor:
-			return True
+	def retweetAction(self, mention):
 
-		return False
-
-
-	def __readAdvisorMembers(self):
-		"""
-		Let me read the members of the advisor list.
-		"""
-		try:
-			for user in self.twitter.list_members(self.botname, 'advisor'):
-				self.advisor.append(str(user.screen_name))
-		except Exception as e:
-			self.__log('Exception: ' + str(e))
-
-		self.__log('I accept advise from ' + str(self.advisor))
-
-
-
-
-	def __retweetAction(self, mention):
-		"""
-		Maybe retweet.
-
-		I will NOT retweet mentions, which:
-		* are tweeted by myself, uh.
-		* are a reply from hell.
-		* are by private users (applied DSGVO).
-		* were read/retweeted by me before.
-		"""
-
-		self.__log('-> Checking for retweet', '... ')
+		self.log('retweetAction:', ' ')
 
 		if str(mention.user.screen_name) == self.botname:
-			self.__log('is by myself, oops, no retweet.')
-			return
+			self.log('myself, oops, no retweet.')
+			return False
 
-		if str(mention.in_reply_to_status_id_str) and str(mention.in_reply_to_status_id_str) != 'None':
-			self.__log('is a reply from hell, no retweet.')
-			return
+		if str(mention.user.id) not in self.followers:
+			self.log('not a follower, no retweet.')
+			self.reply(mention, 'Hallo, ich retweteete nur Follower.')
+			return False
 
 		if str(mention.user.protected) == 'True':
-			self.__log('is private, no retweet.')
-			return
+			self.log('private user, no retweet.')
+			self.reply(mention, 'Hallo, ich retweete nur Follower mit öffentlichem Account.')
+			return False
 
-		self.__retweet(mention)
+		if str(mention.in_reply_to_status_id_str) and str(mention.in_reply_to_status_id_str) != 'None':
+			self.log('reply from hell, no retweet.')
+			self.reply(mention, 'Hallo, bitte halte mich aus dieser Unterhaltung heraus.')
+			return False
+
+		self.log('RETWEETING.')
+
+		if self.readOnly == True:
+			return True
+
+		try:
+			self.twitter.retweet(tweet.id)
+		except Exception as e:
+			self.log("Exception: " + str(e))
+
+		return False
+
+
+	def reply(self, tweet, message):
+		self.log('REPLYING: ' + message)
+		if self.readOnly == True:
+			return True
+		try:
+			self.twitter.update_status(
+				status = message, in_reply_to_status_id = tweet.id
+			)
+		except Exception as e:
+			self.log("Exception: " + str(e))
 
 
 
 
-	def heartBeat(self, readonly=True):
-		"""
-		Give me a heartbeat from time to time!
-		I'm not looking for work unless being heartly beaten.
-		"""
-		self.__log('I received a heartbeat, will look for tweets now...')
 
-		self.ismuted = readonly
-		if self.ismuted:
-			self.__log('I am MUTED, not talking to twitter this time.')
 
-		self.__houseKeeping()
-		self.__readMentions()
+
+
+
+
+
+
+
+	def houseKeeping(self):
+		"""Let me take care of things that are not triggered by tweets."""
+
+		if True or self.timenow.hour == 1 and self.timenow.minute <= 5:
+			self.log('I am fetching my followers, this may take a while.', '')
+			self.twitter.followers.pagination_mode='cursor'
+			for follower in tweepy.Cursor(self.twitter.followers).items():
+				self.log('+','')
+				self.db.cursor().execute('INSERT OR IGNORE INTO followers VALUES (?,?)', (str(follower.id),str(follower.screen_name)))
+				self.db.commit()
+			self.log('done.')
+
+
+		self.followers = []
+		select = self.db.cursor()
+		select.execute('SELECT uid,screen_name FROM followers')
+		for follower in select.fetchall():
+			self.followers.append(follower['uid'])
+
+		self.log('I have ' + str(len(self.followers)) + ' followers.')
+		return
+
+
+
+
+class BotTest(TestCase):
+
+	apiMock = None
+
+	bot = None
+
+	def setUp(self):
+		self.bot = Bot(
+			mock.Mock(
+				me = mock.MagicMock(return_value=mock.Mock(screen_name='MockBot')),
+				list_members = mock.MagicMock(return_value=[
+					mock.Mock(screen_name = 'advisor1'),
+					mock.Mock(screen_name = 'advisor2')
+				])
+			)
+		)
+
+	def tearDown(self):
+		remove(self.bot.databaseFile())
+		pass
+
+	def test_bot_can_init(self):
+		bot = self.bot
+		self.assertEqual(bot.botname, 'MockBot')
+		self.assertFalse(None in bot.advisors)
+		self.assertFalse('' in bot.advisors)
+		self.assertFalse('notadvisor' in bot.advisors)
+		self.assertTrue('advisor1' in bot.advisors)
+		self.assertTrue('advisor2' in bot.advisors)
+
+	def test_bot_can_handle_lockfile(self):
+		bot = self.bot
+		open(bot.lockFile(), 'a').close()
+		self.assertTrue(path.isfile(bot.lockFile()))
+		remove(bot.lockFile())
+		self.assertFalse(path.isfile(bot.lockFile()))
+
+	def test_bot_can_handle_advise(self):
+		bot = self.bot
+		user = mock.Mock(screen_name = 'user')
+		advisor = mock.Mock(screen_name = 'advisor1')
+		self.assertFalse(bot.adviseAction(mock.Mock(text='foo',user=user)))
+		self.assertFalse(bot.adviseAction(mock.Mock(text='foo',user=advisor)))
+		self.assertTrue(bot.adviseAction(mock.Mock(text='@mockbot! mute xxx',user=advisor)))
+		self.assertTrue(bot.adviseAction(mock.Mock(text='@mockbot! unmute xxx',user=advisor)))
+		self.assertTrue(bot.adviseAction(mock.Mock(text='@mockbot! mute advisor2',user=advisor)))
+		self.assertFalse(bot.adviseAction(mock.Mock(text='@mockbot! mute xxx',user=user)))
+
+	def test_bot_can_retweet(self):
+
+		bot = self.bot
+
+		tweepy.Cursor.items = mock.MagicMock(return_value=[
+			mock.Mock(id=1, screen_name = 'follower1'),
+			mock.Mock(id=2, screen_name = 'follower2')
+		])
+		bot.houseKeeping()
+
+		self.assertFalse(
+			bot.retweetAction(
+				mock.Mock(
+					in_reply_to_status_id_str=None,
+					text='@MockBot, pls RT',
+					user = mock.Mock(id = 0, screen_name = 'user')
+				)
+			)
+		)
+		self.assertFalse(
+			bot.retweetAction(
+				mock.Mock(
+					in_reply_to_status_id_str=None,
+					text='@MockBot, pls RT',
+					user = mock.Mock(id = 0, screen_name = 'user')
+				)
+			)
+		)
+		self.assertFalse(
+			bot.retweetAction(
+				mock.Mock(
+					in_reply_to_status_id_str=None,
+					text='@MockBot, pls RT',
+					user = mock.Mock(id = 1, screen_name = 'follower1', protected = True)
+				)
+			)
+		)
+		self.assertFalse(
+			bot.retweetAction(
+				mock.Mock(
+					in_reply_to_status_id_str='4711',
+					text='@MockBot, pls RT',
+					user = mock.Mock(id = 1, screen_name = 'follower1')
+				)
+			)
+		)
+		self.assertTrue(
+			bot.retweetAction(
+				mock.Mock(
+					in_reply_to_status_id_str=None,
+					text='@MockBot, pls RT',
+					user = mock.Mock(id = 1, screen_name = 'follower1')
+				)
+			)
+		)
+
+
+Karlsruher(argv)

@@ -36,16 +36,12 @@ und trage in die neue Kopie Deine eigenen API-Keys ein.
 Der Bot erkennt den Account selbst und legt automagisch eine Datenbank für ihn an.
 
 
-	`# ./run-cron.py`
+	`# ./karlsruher.py [-test] [-talk]`
 
 
 Dateien:
-
-* karlsruher.py ist das Modul mit der "Bot" Klasse.
+* karlsruher.py ist das ausführbare Modul.
 * register.py Registriert den Bot manuell, irgendwie.
 * credentials.py.example enthält die API Zugangsdaten (nach credentials.py kopieren)
-* run-cron.py führt die Aufgaben des Bots aus.
-mit "-test" als erstes und einziges Argument, simuliert der Bot seine Aktionen mit Testdaten und ohne Verbindung zu Twitter.
-* mock.py enthält Testdaten und Twitter Mock für lokales Gefrickel.
 
 ...
