@@ -89,11 +89,11 @@ class Bot:
 
 
 	def lockFile(self):
-		return self.homedir + '/.lock.'+ self.botname
+		return self.homedir + '/.lock.'+ self.botname.lower()
 
 
 	def databaseFile(self):
-		return self.homedir + '/'+ self.botname + '.db'
+		return self.homedir + '/'+ self.botname.lower() + '.db'
 
 
 	def initDatabase(self):
