@@ -25,7 +25,7 @@ Servus, der [\@Karlsruher](https://twitter.com/Karlsruher "Karlsruher RT Bot")
 Hallo nochmal, der Karlsruher ist ein Roboter, der *automatisch* und ohne redaktionelle Einflußnahme Tweets seiner Follower retweetet.
 Für Inhalte sind so ausschließlich die Urheber der jeweiligen Tweets verantwortlich. Bei Bedarf können *diese* [direkt über die üblichen Methoden](https://help.twitter.com/de/using-twitter#blocking-and-muting) auf Twitter gemuted, geblockt oder gar gemeldet werden. Entscheide selbst, weise und korrekt!
 
-Da ich den Karlsruher zum Spaß übernommen habe und nun auf klappriger Hobby-Infrastruktur betreibe, kann es jederzeit zu Ausfällen oder gar Beeinträchtigung kommen. Bei technischen Problemem oder Missbrauch werde ich nicht sofort reagieren können. In diesem Fall bitte ich darum Ruhe zu bewahren und mich kurz und sachlich zu informieren.
+Da ich den Karlsruher zum Spaß übernommen habe und nun auf klappriger Hobby-Infrastruktur weiterbetreibe, kann es jederzeit zu Ausfällen oder gar Beeinträchtigung Deines Twitter-Erlebnisses kommen. Bei technischen Problemem oder Missbrauch werde ich nicht sofort reagieren können. In diesem Fall bitte ich darum Ruhe zu bewahren und mich kurz und sachlich zu informieren.
 
 Cheers! [\@schlind](https://twitter.com/schlind)
 
