@@ -18,20 +18,26 @@ Zur Laufzeit erstellt der Bot eine Datenbank *botname.db*, die er bei Bedarf sel
 Dokumentation findet sich hier in *README.md* und für Twitter in [karlsruher.md](karlsruher.md).
 
 ### Dateien
+
 #### karlsruher.py
 Ein Ausführbares Python3 Skript.
 
 Selbsttest des Bots ausführen:
+
 	`# ./karlsruher.py -test`
 
 Starten des Bots im nur-lesen Modus mit:
+
 	`# ./karlsruher.py`
 
 Starten des Bots im regulären Einsatz:
+
 	`# ./karlsruher.py -talk`
 
 Starten per Cronjob:
+
 	`*/5 *  * * * /path/to/karlsruher.py -talk >> /path/to/karlsruher.log 2>&1`
+
 
 #### credentials.py.example
 Kopiere diese Datei

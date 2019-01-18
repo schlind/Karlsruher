@@ -15,10 +15,25 @@ Wenn Du über mich auf einen anderen Tweet hinweisen möchtest, benutze einfach 
 
 Ich schaue nur alle fünf Minuten auf Twitter und lese dann auch nur eine Hand voll Tweets, meist nur die neusten.
 
-Nach dem Folgen kann es 1-2 Tage dauern, bis ich Dich retweete.
+Wichtig: Nach dem Folgen wird es 1-2 Tage dauern, bis ich Dich erstmals wahrnehme und retweete.
+
+Servus, der [\@Karlsruher](https://twitter.com/Karlsruher "Karlsruher RT Bot")
+
+
+## Probleme und Ansprechpartner
+
+Hallo nochmal, der Karlsruher ist ein Roboter, der *automatisch* und ohne redaktionelle Einflußnahme Tweets seiner Follower retweetet.
+Für Inhalte sind so ausschließlich die Urheber der jeweiligen Tweets verantwortlich. Bei Bedarf können *diese* [direkt über die üblichen Methoden](https://help.twitter.com/de/using-twitter#blocking-and-muting) auf Twitter gemuted, geblockt oder gar gemeldet werden. Entscheide selbst, weise und korrekt!
+
+Da ich den Karlsruher zum Spaß übernommen habe und nun auf klappriger Hobby-Infrastruktur betreibe, kann es jederzeit zu Ausfällen oder gar Beeinträchtigung kommen. Bei technischen Problemem oder Missbrauch werde ich nicht sofort reagieren können. In diesem Fall bitte ich darum Ruhe zu bewahren und mich kurz und sachlich zu informieren.
 
 Cheers! [\@schlind](https://twitter.com/schlind)
 
 
 ## Historie
 Die Idee und eine Urimplementierung dieses Bots stammt von [\@syn2](https://twitter.com/syn2), der den Karlsruher auch jahrelang mit reichlich Strom und gutem Internet versorgt hat. Vielen Dank dafür!
+
+
+## Zukunft?
+Der Karlsruher ist jetzt ja Open-Source, ...
+Was!? Siehe [README.md](README.md)
