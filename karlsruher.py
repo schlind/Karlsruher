@@ -4,7 +4,7 @@
 from datetime import datetime
 from os import path, remove
 from sys import version_info, argv, stdout, exit
-assert version_info >= (3, 7)
+assert version_info >= (3, 4)
 from unittest import TestCase, TestSuite, TextTestRunner, mock
 import sqlite3
 import tweepy
@@ -274,14 +274,14 @@ class Bot:
 	def houseKeeping(self):
 		"""Let me take care of things that are not triggered by tweets."""
 
-#		if self.timenow.hour == 1 and self.timenow.minute <= 5:
-		self.log('I am fetching my followers, this may take a while.', '')
-		self.twitter.followers.pagination_mode='cursor'
-		for follower in tweepy.Cursor(self.twitter.followers).items():
-			self.log('+','')
-			self.db.cursor().execute('INSERT OR IGNORE INTO followers VALUES (?,?)', (str(follower.id),str(follower.screen_name)))
-			self.db.commit()
-		self.log('done.')
+		if self.timenow.hour == 1 and self.timenow.minute <= 5:
+			self.log('I am fetching my followers, this may take a while.', '')
+			self.twitter.followers.pagination_mode='cursor'
+			for follower in tweepy.Cursor(self.twitter.followers).items():
+				self.log('+','')
+				self.db.cursor().execute('INSERT OR IGNORE INTO followers VALUES (?,?)', (str(follower.id),str(follower.screen_name)))
+				self.db.commit()
+			self.log('done.')
 
 
 		self.followers = []
