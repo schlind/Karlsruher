@@ -260,7 +260,7 @@ class Bot:
 			self.log('myself, oops, no retweet.')
 			return False
 
-		if mention.user.id not in self.followers:
+		if str(mention.user.id) not in self.followers:
 			self.log('not a follower, no retweet.')
 			#self.reply(mention, 'Hallo, ich retweteete nur Follower.')
 			return False
