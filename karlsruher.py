@@ -1,22 +1,38 @@
 #!/usr/bin/env python3
-
+##
+## Karlsruher Retweet Bot https://github.com/schlind/Karlsruher
+## Cronjob:
+##	*/5 *  * * * /path/to/karlsruher.py >> /path/to/karlsruher.log 2>&1
+##
 
 from datetime import datetime
 from os import path, remove
 from sys import version_info, argv, stdout, exit
-assert version_info >= (3, 4)
 from unittest import TestCase, TestSuite, TextTestRunner, mock
 import sqlite3
 import tweepy
 
+import requests
+import re
+
+assert version_info >= (3,)
 
 def Karlsruher(arguments):
-	suite = TestSuite()
-	suite.addTest(BotTest('test_bot_can_init'))
-	suite.addTest(BotTest('test_bot_can_handle_lockfile'))
-	suite.addTest(BotTest('test_bot_can_handle_advise'))
-	suite.addTest(BotTest('test_bot_can_retweet'))
-	TextTestRunner().run(suite)
+
+	selftest = TestSuite()
+	selftest.addTest(BotTest('test_bot_can_init'))
+	selftest.addTest(BotTest('test_bot_doesnt_take_advice_from_user'))
+	selftest.addTest(BotTest('test_bot_can_take_advice_from_advisor'))
+	selftest.addTest(BotTest('test_bot_can_protect_advisor'))
+	selftest.addTest(BotTest('test_bot_can_handle_advice_mute'))
+	selftest.addTest(BotTest('test_bot_can_handle_advice_unmute'))
+	selftest.addTest(BotTest('test_bot_doesnt_retweet_self'))
+	selftest.addTest(BotTest('test_bot_doesnt_retweet_nonfollower'))
+	selftest.addTest(BotTest('test_bot_doesnt_retweet_protected'))
+	selftest.addTest(BotTest('test_bot_doesnt_retweet_reply'))
+	selftest.addTest(BotTest('test_bot_can_retweet'))
+	TextTestRunner().run(selftest)
+
 	if not '-test' in arguments:
 		bot = Bot()
 		bot.readOnly = '-talk' not in arguments
@@ -25,7 +41,7 @@ def Karlsruher(arguments):
 
 class Bot:
 
-	readOnly=True
+	readOnly = True
 	homedir = path.dirname(path.realpath(__file__))
 	timenow = datetime.now()
 	twitter = None
@@ -67,20 +83,18 @@ class Bot:
 		self.initDatabase()
 
 
-	def __del__(self):
-		pass
-
-
 	def log(self, message, lineend='\n'):
-		"""May use a framework later, lol."""
 		stdout.write(message + lineend)
 		stdout.flush()
+
 
 	def lockFile(self):
 		return self.homedir + '/.lock.'+ self.botname
 
+
 	def databaseFile(self):
 		return self.homedir + '/'+ self.botname + '.db'
+
 
 	def initDatabase(self):
 		database = self.databaseFile()
@@ -90,6 +104,20 @@ class Bot:
 		self.db.cursor().execute('CREATE TABLE IF NOT EXISTS tweets (tweetid PRIMARY KEY)')
 		self.db.cursor().execute('CREATE TABLE IF NOT EXISTS followers (uid PRIMARY KEY, screen_name VARCHAR NOT NULL)')
 		self.db.commit()
+
+
+	def rememberTweet(self, tweet):
+		"""Remember that I read the given tweet."""
+		self.db.cursor().execute('INSERT OR IGNORE INTO tweets VALUES (?)', (str(tweet.id),))
+		self.db.commit()
+
+
+	def haveReadTweet(self, tweet):
+		"""Tell whether or not I already read the given tweet."""
+		cursor = self.db.cursor()
+		cursor.execute('SELECT tweetid FROM tweets WHERE tweetid = ?', (str(tweet.id),))
+		return cursor.fetchone() != None
+
 
 	def initAdvisor(self):
 		"""Twitter API: list_members."""
@@ -101,7 +129,7 @@ class Bot:
 			# Expected from any API call.
 			self.log('Exception: ' + str(e))
 
-		self.log('I accept advise from ' + str(self.advisors))
+		self.log('I accept advice from ' + str(self.advisors))
 
 
 	def run(self):
@@ -129,19 +157,6 @@ class Bot:
 		self.log('Bye.')
 
 
-	def rememberTweet(self, tweet):
-		"""Remember that I read the given tweet."""
-		self.db.cursor().execute('INSERT OR IGNORE INTO tweets VALUES (?)', (str(tweet.id),))
-		self.db.commit()
-
-
-	def haveReadTweet(self, tweet):
-		"""Tell whether or not I already read the given tweet."""
-		cursor = self.db.cursor()
-		cursor.execute('SELECT tweetid FROM tweets WHERE tweetid = ?', (str(tweet.id),))
-		return cursor.fetchone() != None
-
-
 	def readMention(self, mention):
 
 		self.log('+ Reading https://twitter.com/' + mention.user.screen_name + '/status/' + str(mention.id))
@@ -153,7 +168,7 @@ class Bot:
 		self.rememberTweet(mention)
 
 		try:
-			if self.adviseAction(mention):
+			if self.adviceAction(mention):
 				return
 			self.retweetAction(mention)
 
@@ -161,76 +176,101 @@ class Bot:
 			self.log('Exception: ' + str(e))
 
 
+	def reply(self, tweet, text):
+
+		self.log('REPLYING: ' + text)
+
+		if self.readOnly == True:
+			return True
+
+		try:
+			self.twitter.update_status(
+				status = text, in_reply_to_status_id = tweet.id
+			)
+		except Exception as e:
+			self.log('Exception: ' + str(e))
+
+
+	def tweet(self, text):
+
+		self.log('TWEETING: ' + text)
+
+		if self.readOnly == True:
+			return True
+
+		try:
+			self.twitter.update_status(status = text)
+		except Exception as e:
+			self.log('Exception: ' + str(e))
 
 
 
 
-	def adviseAction(self, tweet):
+	def adviceAction(self, tweet):
 
 		if not tweet.user.screen_name in self.advisors:
 			return False
+
+		self.log('- adviceAction:', ' ')
 
 		trigger = str('@' + self.botname + '!').lower()
 		message = str(tweet.text)
 
 		if message.lower().startswith(trigger):
 
-			advise = message[len(trigger):].strip().split()
+			advice = message[len(trigger):].strip().split()
 
-			if len(advise) == 2:
+			if len(advice) == 2:
 
-				action = advise[0].strip().lower()
-				subject = advise[1].strip()
+				action = advice[0].strip().lower()
+				subject = advice[1].strip()
 
 				if subject in self.advisors:
-					self.log('ignoring: ' + action + ' @' + subject)
+					self.log('ignoring ' + action + ' ' + subject)
 					return True
 
-				self.log(action + ' @' + subject)
+				self.log(action + ' ' + subject)
 
 				try:
 
-					if action == 'sleep':
-						self.log("" + int(subject))
-						self.reply(tweet, 'Danke, ich lege mich schlafen.')
-						return True
-
-					if action == 'mute':
+					if action == '+mute':
 						self.twitter.create_mute(screen_name = subject)
 						self.reply(tweet, 'Danke, ich lese ' + subject + ' nicht mehr.')
 						return True
 
-					if action == 'unmute':
+					if action == '-mute':
 						self.twitter.destroy_mute(screen_name = subject)
 						self.reply(tweet, 'Danke, ich lese ' + subject + ' wieder.')
 						return True
 
 				except Exception as e:
-					self.log("Exception: " + str(e))
+					self.log('Exception: ' + str(e))
 					return True
 
 		return False
 
 
+
+
 	def retweetAction(self, mention):
 
-		self.log('retweetAction:', ' ')
+		self.log('- retweetAction:', ' ')
 
 		if str(mention.user.screen_name) == self.botname:
 			self.log('myself, oops, no retweet.')
 			return False
 
-		if str(mention.user.id) not in self.followers:
+		if mention.user.id not in self.followers:
 			self.log('not a follower, no retweet.')
 			#self.reply(mention, 'Hallo, ich retweteete nur Follower.')
 			return False
 
 		if str(mention.user.protected) == 'True':
 			self.log('private user, no retweet.')
-			self.reply(mention, 'Hallo, ich retweete nur Follower mit öffentlichem Account.')
+			#self.reply(mention, 'Hallo, ich retweete nur Follower mit öffentlichem Account.')
 			return False
 
-		if str(mention.in_reply_to_status_id_str) and str(mention.in_reply_to_status_id_str) != 'None':
+		if str(mention.in_reply_to_status_id_str) != 'None':
 			self.log('reply from hell, no retweet.')
 			#self.reply(mention, 'Hallo, bitte halte mich aus dieser Unterhaltung heraus.')
 			return False
@@ -242,37 +282,16 @@ class Bot:
 
 		try:
 			self.twitter.retweet(tweet.id)
+			return True
 		except Exception as e:
-			self.log("Exception: " + str(e))
+			self.log('Exception: ' + str(e))
 
 		return False
-
-
-	def reply(self, tweet, message):
-		self.log('REPLYING: ' + message)
-		if self.readOnly == True:
-			return True
-		try:
-			self.twitter.update_status(
-				status = message, in_reply_to_status_id = tweet.id
-			)
-		except Exception as e:
-			self.log("Exception: " + str(e))
-
-
-
-
-
-
-
-
-
 
 
 
 
 	def houseKeeping(self):
-		"""Let me take care of things that are not triggered by tweets."""
 
 		if self.timenow.hour == 1 and self.timenow.minute <= 5:
 			self.log('I am fetching my followers, this may take a while.', '')
@@ -291,27 +310,31 @@ class Bot:
 			self.followers.append(follower['uid'])
 
 		self.log('I have ' + str(len(self.followers)) + ' followers.')
-		return
+
+
+
+
 
 
 
 
 class BotTest(TestCase):
 
-	apiMock = None
-
 	bot = None
 
 	def setUp(self):
 		self.bot = Bot(
 			mock.Mock(
-				me = mock.MagicMock(return_value=mock.Mock(screen_name='MockBot')),
-				list_members = mock.MagicMock(return_value=[
-					mock.Mock(screen_name = 'advisor1'),
-					mock.Mock(screen_name = 'advisor2')
-				])
+				me = mock.MagicMock(
+					return_value=mock.Mock(id = 8, screen_name='MockBot')),
+					list_members = mock.MagicMock(
+						return_value=[
+							mock.Mock(id = 7, screen_name = 'advisor')
+						]
+					)
+				)
 			)
-		)
+
 
 	def tearDown(self):
 		remove(self.bot.databaseFile())
@@ -323,84 +346,126 @@ class BotTest(TestCase):
 		self.assertFalse(None in bot.advisors)
 		self.assertFalse('' in bot.advisors)
 		self.assertFalse('notadvisor' in bot.advisors)
-		self.assertTrue('advisor1' in bot.advisors)
-		self.assertTrue('advisor2' in bot.advisors)
+		self.assertTrue('advisor' in bot.advisors)
 
-	def test_bot_can_handle_lockfile(self):
+	def test_bot_doesnt_take_advice_from_user(self):
 		bot = self.bot
-		open(bot.lockFile(), 'a').close()
-		self.assertTrue(path.isfile(bot.lockFile()))
-		remove(bot.lockFile())
-		self.assertFalse(path.isfile(bot.lockFile()))
+		self.assertFalse(
+			bot.adviceAction(
+				mock.Mock(
+					text='foo',
+					user=mock.Mock(id = 0, screen_name = 'user')
+				)
+			)
+		)
 
-	def test_bot_can_handle_advise(self):
+	def test_bot_can_take_advice_from_advisor(self):
 		bot = self.bot
-		user = mock.Mock(screen_name = 'user')
-		advisor = mock.Mock(screen_name = 'advisor1')
-		self.assertFalse(bot.adviseAction(mock.Mock(text='foo',user=user)))
-		self.assertFalse(bot.adviseAction(mock.Mock(text='foo',user=advisor)))
-		self.assertTrue(bot.adviseAction(mock.Mock(text='@mockbot! mute xxx',user=advisor)))
-		self.assertTrue(bot.adviseAction(mock.Mock(text='@mockbot! unmute xxx',user=advisor)))
-		self.assertTrue(bot.adviseAction(mock.Mock(text='@mockbot! mute advisor2',user=advisor)))
-		self.assertFalse(bot.adviseAction(mock.Mock(text='@mockbot! mute xxx',user=user)))
+		self.assertFalse(
+			bot.adviceAction(
+				mock.Mock(
+					text='foo',
+					user=mock.Mock(id = 7, screen_name = 'advisor')
+				)
+			)
+		)
+
+
+	def test_bot_can_protect_advisor(self):
+		bot = self.bot
+		self.assertTrue(
+			bot.adviceAction(
+				mock.Mock(
+					text='@mockbot! +mute advisor',
+					user=mock.Mock(id = 7, screen_name = 'advisor')
+				)
+			)
+		)
+
+	def test_bot_can_handle_advice_mute(self):
+		bot = self.bot
+		self.assertTrue(
+			bot.adviceAction(
+				mock.Mock(
+					text='@mockbot! +mute user',
+					user=mock.Mock(id = 7, screen_name = 'advisor')
+				)
+			)
+		)
+
+	def test_bot_can_handle_advice_unmute(self):
+		bot = self.bot
+		self.assertTrue(
+			bot.adviceAction(
+				mock.Mock(
+					text='@mockbot! -mute user',user=mock.Mock(id = 7, screen_name = 'advisor')
+				)
+			)
+		)
+
+	def test_bot_doesnt_retweet_self(self):
+		bot = self.bot
+		self.assertFalse(
+			bot.retweetAction(
+				mock.Mock(
+					user = mock.Mock(id = 8, screen_name = self.bot.botname),
+					in_reply_to_status_id_str=None,
+					text = 'Hey @MockBot, pls RT!'
+				)
+			)
+		)
+
+	def test_bot_doesnt_retweet_nonfollower(self):
+		bot = self.bot
+		self.assertFalse(
+			bot.retweetAction(
+				mock.Mock(
+					user = mock.Mock(id = 5, screen_name = 'user'),
+					in_reply_to_status_id_str=None,
+					text = 'Hey @MockBot, pls RT!'
+				)
+			)
+		)
+
+	def test_bot_doesnt_retweet_protected(self):
+		bot = self.bot
+		self.assertFalse(
+			bot.retweetAction(
+				mock.Mock(
+					user = mock.Mock(id = 3, screen_name = 'user', protected = True),
+					in_reply_to_status_id_str=None,
+					text = 'Hey @MockBot, pls RT!'
+				)
+			)
+		)
+
+	def test_bot_doesnt_retweet_reply(self):
+		bot = self.bot
+		bot.followers = [1,]
+		self.assertFalse(
+			bot.retweetAction(
+				mock.Mock(
+					user = mock.Mock(id = 1, screen_name = 'follower'),
+					in_reply_to_status_id_str='4711',
+					text = 'Hey @MockBot, pls RT!'
+				)
+			)
+		)
 
 	def test_bot_can_retweet(self):
-
 		bot = self.bot
+		bot.followers = [1,]
+		self.assertTrue(
+			bot.retweetAction(
+				mock.Mock(
+					user = mock.Mock(id = 1, screen_name = 'follower'),
+					in_reply_to_status_id_str=None,
+					text = 'Hey @MockBot, pls RT!'
+				)
+			)
+		)
 
-		realCursor = tweepy.Cursor.items
-		tweepy.Cursor.items = mock.MagicMock(return_value=[
-			mock.Mock(id=1, screen_name = 'follower1'),
-			mock.Mock(id=2, screen_name = 'follower2')
-		])
-		bot.houseKeeping()
-		tweepy.Cursor.items = realCursor
 
-		self.assertFalse(
-			bot.retweetAction(
-				mock.Mock(
-					in_reply_to_status_id_str=None,
-					text='@MockBot, pls RT',
-					user = mock.Mock(id = 0, screen_name = 'user')
-				)
-			)
-		)
-		self.assertFalse(
-			bot.retweetAction(
-				mock.Mock(
-					in_reply_to_status_id_str=None,
-					text='@MockBot, pls RT',
-					user = mock.Mock(id = 0, screen_name = 'user')
-				)
-			)
-		)
-		self.assertFalse(
-			bot.retweetAction(
-				mock.Mock(
-					in_reply_to_status_id_str=None,
-					text='@MockBot, pls RT',
-					user = mock.Mock(id = 1, screen_name = 'follower1', protected = True)
-				)
-			)
-		)
-		self.assertFalse(
-			bot.retweetAction(
-				mock.Mock(
-					in_reply_to_status_id_str='4711',
-					text='@MockBot, pls RT',
-					user = mock.Mock(id = 1, screen_name = 'follower1')
-				)
-			)
-		)
-#		self.assertTrue(
-#			bot.retweetAction(
-#				mock.Mock(
-#					in_reply_to_status_id_str=None,
-#					text='@MockBot, pls RT',
-#					user = mock.Mock(id = 1, screen_name = 'follower1')
-#				)
-#			)
-#		)
 
 
 Karlsruher(argv)
