@@ -20,7 +20,7 @@ Wichtig: Nach dem Folgen wird es 1-2 Tage dauern, bis ich Dich erstmals wahrnehm
 Servus, der [\@Karlsruher](https://twitter.com/Karlsruher "Karlsruher RT Bot")
 
 
-## Probleme und Ansprechpartner
+## Verantwortung und Ansprechpartner
 
 Hallo nochmal, der Karlsruher ist ein Roboter, der *automatisch* und ohne redaktionelle Einflußnahme Tweets seiner Follower retweetet.
 Für Inhalte sind so ausschließlich die Urheber der jeweiligen Tweets verantwortlich. Bei Bedarf können *diese* [direkt über die üblichen Methoden](https://help.twitter.com/de/using-twitter#blocking-and-muting) auf Twitter gemuted, geblockt oder gar gemeldet werden. Entscheide selbst, weise und korrekt!
