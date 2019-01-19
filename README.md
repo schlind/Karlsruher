@@ -28,19 +28,9 @@ Das ist mein erstes Projekt mit Python, Feedback willkommen!
 ### Kommandos
 
 Der Bot kann auf Kommandos seiner Berater hören.
+Berater sind Mitglieder seiner Liste "Advisors" auf Twitter.
 
-Dieses Feature ist zwar fertig, aber noch nicht ausgiebig gestestet. Außerdem ist noch offen, wer in die Liste der Advisors (auf Twitter) aufgenommen werden wird.
-
-
-#### Schlafen und aufwachen
-
-Der Bot retweetet nur, wenn er wach ist.
-
-Der Bot kann von seinen Beratern per Tweet schlafen geschickt und aufgeweckt werden:
-
-	`\@Karlsruher! Geh schlafen!`
-
-	`\@Karlsruher! Wach auf!`
+Dieses Feature ist zwar fertig, aber noch nicht ausgiebig gestestet. 
 
 
 ### Housekeeping

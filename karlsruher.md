@@ -20,6 +20,21 @@ Wichtig: Nach dem Folgen wird es 1-2 Tage dauern, bis ich Dich erstmals wahrnehm
 Servus, der [\@Karlsruher](https://twitter.com/Karlsruher "Karlsruher RT Bot")
 
 
+
+## Schlafen und aufwachen
+
+Ich retweete nur, wenn ich wach bin.
+
+Ich kann von einigen Nutzern schlafen geschickt und aufgeweckt werden:
+
+	`\@Karlsruher! Geh schlafen!` - schick mich schlafen, ich höre auf zu retweeten.
+
+	`\@Karlsruher! Wach auf!` - weckt mich auf, ich retweete wieder.
+
+
+Die Liste meiner Follower, die das können, ist noch sehr kurz. Möchtest Du auch dabei sein? Ja? Wende Dich an meinen Ansprechpartner.
+
+
 ## Verantwortung und Ansprechpartner
 
 Hallo nochmal, der Karlsruher ist ein Roboter, der *automatisch* und ohne redaktionelle Einflußnahme Tweets seiner Follower retweetet.

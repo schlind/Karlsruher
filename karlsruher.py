@@ -168,7 +168,7 @@ class Bot:
 	def initAdvisors(self):
 		self.advisors = []
 		try:
-			for user in self.twitter.list_members(self.botname, 'advisor'):
+			for user in self.twitter.list_members(self.botname, 'advisors'):
 				self.advisors.append(str(user.screen_name))
 		except Exception as e:
 			self.logger.exception('Exception during API call.')
