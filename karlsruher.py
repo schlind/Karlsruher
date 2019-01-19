@@ -118,23 +118,26 @@ class Bot:
 		self.initAdvisors()
 
 
-
+	def sleepFile(self):
+		return self.homeDirectory + '/.sleep.'+ self.botname.lower()
 
 	def lockFile(self):
 		return self.homeDirectory + '/.lock.'+ self.botname.lower()
 
-	def lock(self):
-		lockfile = self.lockFile()
-		if path.isfile(self.lockFile()):
-			self.logger.info('Locked: ' + self.lockFile())
+	def lock(self, lockfile):
+		if self.isLocked(lockfile):
+			self.logger.info('Locked: ' + lockfile)
 			exit(0)
+		self.logger.debug('Locking "%s".', lockfile)
 		open(lockfile, 'a').close()
 
-	def unlock(self):
-		if path.isfile(self.lockFile()):
-			remove(self.lockFile())
+	def unlock(self, lockfile):
+		if self.isLocked(lockfile):
+			self.logger.debug('Unlocking "%s".', lockfile)
+			remove(lockfile)
 
-
+	def isLocked(self, lockfile):
+		return path.isfile(lockfile)
 
 
 	def databaseFile(self):
@@ -213,7 +216,7 @@ class Bot:
 		if not self.doHouseKeeping:
 			return False
 
-		self.lock()
+		self.lock(self.lockFile())
 		self.logger.info('I am housekeeping.')
 		startTime = datetime.now()
 		try:
@@ -221,17 +224,19 @@ class Bot:
 		except Exception as e:
 			self.logger.exception('Exception during housekeeping.')
 		self.logger.info('Housekeeping done, took: %s', datetime.now() - startTime)
-		self.unlock()
+		self.unlock(self.lockFile())
 		return True
 
 
 
 
 	def run(self):
+
 		if self.houseKeeping():
 			return
 
-		self.lock()
+
+		self.lock(self.lockFile())
 		self.logger.debug('I start a run now: ' + str(self.now))
 		self.logger.info(
 			'I am %s.',
@@ -240,7 +245,7 @@ class Bot:
 		for mention in self.twitter.mentions_timeline():
 			self.readMention(mention)
 		self.logger.info('Run took: %s, bye!', datetime.now() - startTime)
-		self.unlock()
+		self.unlock(self.lockFile())
 
 
 
@@ -286,7 +291,7 @@ class Bot:
 			return False
 
 		action = advice[0].strip().lower()
-		subject = advice[1].strip()
+		subject = advice[1].strip().lower()
 
 		if subject in self.advisors:
 			self.logger.info(
@@ -301,6 +306,20 @@ class Bot:
 		)
 
 		try:
+
+			if action == 'geh' and subject == 'schlafen!':
+				self.logger.debug('Sleeping %s.', subject)
+				self.reply(tweet, 'Danke, ich schlafe jetzt.')
+				self.tweet('Automatische Nachricht: Ich retweete vorübergehend nicht mehr.')
+				self.lock(self.sleepFile())
+				return True
+
+			if action == 'wach' and subject == 'auf!':
+				self.logger.debug('Wache auf. %s.', subject)
+				self.reply(tweet, 'Danke, ich wache jetzt auf.')
+				self.tweet('Automatische Nachricht: Ich retweete jetzt gleich wieder.')
+				self.unlock(self.sleepFile())
+				return True
 
 			if action == '+mute':
 				self.logger.debug('Muting %s.', subject)
@@ -324,6 +343,10 @@ class Bot:
 
 
 	def retweetAction(self, mention):
+
+		if self.isLocked(self.sleepFile()):
+			self.logger.debug('I am sleeping.')
+			return False
 
 		if str(mention.user.screen_name) == self.botname:
 			self.logger.debug('Not retweeting myself.')
@@ -406,13 +429,21 @@ class BotTest(TestCase):
 		self.assertFalse('notadvisor' in bot.advisors)
 		self.assertTrue('advisor' in bot.advisors)
 
+	def test_bot_can_lock_and_unlock(self):
+		bot = self.bot
+		self.assertFalse(bot.isLocked(bot.lockFile()))
+		bot.lock(bot.lockFile())
+		self.assertTrue(bot.isLocked(bot.lockFile()))
+		bot.unlock(bot.lockFile())
+		self.assertFalse(bot.isLocked(bot.lockFile()))
+
 	def test_bot_doesnot_take_advice_from_user(self):
 		bot = self.bot
 		self.assertFalse(
 			bot.adviceAction(
 				mock.Mock(
 					id = 4711,
-					text='foo',
+					text='foo bar',
 					user=mock.Mock(id = 0, screen_name = 'user')
 				)
 			)
@@ -441,6 +472,33 @@ class BotTest(TestCase):
 				)
 			)
 		)
+
+	def test_bot_can_handle_advice_sleep(self):
+		bot = self.bot
+		self.assertTrue(
+			bot.adviceAction(
+				mock.Mock(
+					id = 4711,
+					text='@mockbot! gEh scHlafen!',
+					user=mock.Mock(id = 7, screen_name = 'advisor')
+				)
+			)
+		)
+		self.assertTrue(bot.isLocked(bot.sleepFile()))
+		bot.unlock(bot.sleepFile())
+
+	def test_bot_can_handle_advice_wakeup(self):
+		bot = self.bot
+		self.assertTrue(
+			bot.adviceAction(
+				mock.Mock(
+					id = 4711,
+					text='@mockbot! wAch auf!',
+					user=mock.Mock(id = 7, screen_name = 'advisor')
+				)
+			)
+		)
+		self.assertFalse(bot.isLocked(bot.sleepFile()))
 
 	def test_bot_can_handle_advice_mute(self):
 		bot = self.bot
@@ -530,6 +588,25 @@ class BotTest(TestCase):
 				)
 			)
 		)
+
+
+	def test_bot_can_sleep(self):
+		bot = self.bot
+		self.assertFalse(bot.isLocked(bot.sleepFile()))
+		bot.lock(bot.sleepFile())
+		self.assertTrue(bot.isLocked(bot.sleepFile()))
+		self.assertFalse(
+			bot.retweetAction(
+				mock.Mock(
+					id = 4711,
+					in_reply_to_status_id_str=None,
+					text = 'Hey @MockBot, pls RT!',
+					user = mock.Mock(id = 1, screen_name = 'follower')
+				)
+			)
+		)
+		bot.unlock(bot.sleepFile())
+		self.assertFalse(bot.isLocked(bot.sleepFile()))
 
 
 
