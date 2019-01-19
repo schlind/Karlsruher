@@ -309,14 +309,12 @@ class Bot:
 
 			if action == 'geh' and subject == 'schlafen!':
 				self.logger.debug('Sleeping %s.', subject)
-				self.reply(tweet, 'Danke, ich schlafe jetzt.')
 				self.tweet('Automatische Nachricht: Ich retweete vorübergehend nicht mehr.')
 				self.lock(self.sleepFile())
 				return True
 
 			if action == 'wach' and subject == 'auf!':
 				self.logger.debug('Wache auf. %s.', subject)
-				self.reply(tweet, 'Danke, ich wache jetzt auf.')
 				self.tweet('Automatische Nachricht: Ich retweete jetzt gleich wieder.')
 				self.unlock(self.sleepFile())
 				return True
