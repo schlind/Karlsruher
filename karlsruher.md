@@ -29,7 +29,7 @@ Ich kann von einigen Nutzern schlafen geschickt und aufgeweckt werden:
 
 	`@Karlsruher! Geh schlafen!` - schick mich schlafen, ich höre auf zu retweeten.
 
-	`@Karlsruher! Wach auf!` - weckt mich auf, ich retweete wieder.
+	`@Karlsruher! Wach auf!` - weckt mich auf, ich retweete dann wieder.
 
 
 Die Liste meiner Follower, die das können, ist noch sehr kurz. Möchtest Du auch dabei sein? Ja? Wende Dich an meinen Ansprechpartner.
