@@ -25,12 +25,13 @@ Servus, der [\@Karlsruher](https://twitter.com/Karlsruher "Karlsruher RT Bot")
 
 Ich retweete nur, wenn ich wach bin.
 
-Ich kann von einigen Nutzern schlafen geschickt und aufgeweckt werden:
+Ich kann von einigen Nutzern schlafen geschickt und aufgeweckt werden.
 
-	`@Karlsruher! Geh schlafen!` - schick mich schlafen, ich höre auf zu retweeten.
+Schickt mich schlafen, ich höre dann auf zu retweeten, Tweet: __@Karlsruher! Geh schlafen!__
 
-	`@Karlsruher! Wach auf!` - weckt mich auf, ich retweete dann wieder.
+Weckt mich auf, ich retweete dann wieder, Tweet: __@Karlsruher! Wach auf!__
 
+Achte auf die exakte Position der Ausrufezeichten, andernfalls wird Dein Versuch retweetet. ;)
 
 Die Liste meiner Follower, die das können, ist noch sehr kurz. Möchtest Du auch dabei sein? Ja? Wende Dich an meinen Ansprechpartner.
 
