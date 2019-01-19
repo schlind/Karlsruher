@@ -72,6 +72,7 @@ Alle 5 Minuten Tweets lesen und retweeten:
 	`*/5 *  * * * /path/to/karlsruher.py -talk >> /path/to/karlsruher.log 2>&1`
 
 Jeden Morgen um 01:02 Uhr das Housekeeping durchführen:
+
 	`2 1 * * * /path/to/karlsruher.py -housekeeping >> /path/to/karlsruher.log 2>&1`
 
 
