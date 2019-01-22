@@ -30,7 +30,7 @@ Das ist mein erstes Projekt mit Python, Feedback willkommen!
 Der Bot kann auf Kommandos seiner Berater hören.
 Berater sind Mitglieder seiner Liste "Advisors" auf Twitter.
 
-Dieses Feature ist zwar fertig, aber noch nicht ausgiebig gestestet. 
+Dieses Feature ist zwar fertig, aber noch nicht ausgiebig gestestet.
 
 
 ### Housekeeping
@@ -42,40 +42,12 @@ Während dieses Imports führt der Bot keine weiteren Aktionen parallel aus.
 ### Dateien
 
 #### karlsruher.py
-Ein Ausführbares Python3 Skript.
+Ein ausführbares, fast selbsterklärendes Python3 Skript.
 
-
-Selbsttest des Bots ausführen:
-
-	`# ./karlsruher.py -test`
-
-Starten des Bots im nur-lesen Modus mit:
 
 	`# ./karlsruher.py`
 
-Starten des Bots im regulären Einsatz:
-
-	`# ./karlsruher.py -talk`
-
-
-Starten des Bots im *housekeeping* Einsatz:
-
-	`# ./karlsruher.py -housekeeping`
-
-
-Zusätzliche Debugausgabe aktivieren mit optionalem Argument:
-
-	`-debug`
-
-##### Cronjobs
-
-Alle 5 Minuten Tweets lesen und retweeten:
-
-	`*/5 *  * * * /path/to/karlsruher.py -talk >> /path/to/karlsruher.log 2>&1`
-
-Jeden Morgen um 01:02 Uhr das Housekeeping durchführen:
-
-	`2 1 * * * /path/to/karlsruher.py -housekeeping >> /path/to/karlsruher.log 2>&1`
+Zeigt die Optionen, der Code den Rest. :)
 
 
 #### credentials.py.example

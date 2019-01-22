@@ -25,7 +25,7 @@ Servus, der [\@Karlsruher](https://twitter.com/Karlsruher "Karlsruher RT Bot")
 
 Ich retweete nur, wenn ich wach bin.
 
-Ich kann von einigen Nutzern schlafen geschickt und aufgeweckt werden.
+Ich kann *von einigen Nutzern* schlafen geschickt und aufgeweckt werden.
 
 Schickt mich schlafen, ich höre dann auf zu retweeten, Tweet: __@Karlsruher! Geh schlafen!__
 
