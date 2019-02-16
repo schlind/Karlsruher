@@ -42,12 +42,12 @@ Während dieses Imports führt der Bot keine weiteren Aktionen parallel aus.
 ### Dateien
 
 #### karlsruher.py
-Ein ausführbares, fast selbsterklärendes Python3 Skript.
+Bibliothek
 
+#### run.py
+Startet den Bot
 
-	`# ./karlsruher.py`
-
-Zeigt die Optionen, der Code den Rest. :)
+	`# ./run.py -help`
 
 
 #### credentials.py.example
