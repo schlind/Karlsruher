@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-##
-##
+## Manually authorize (Website + PIN) a new Access-Token
+## for a given Consumer-Token via Twitter API.
 import tweepy
 consumer_key = input('Your Twitter API Consumer Key: ').strip()
 consumer_secret = input('Your Twitter API Consumer Secret: ').strip()

@@ -1,308 +1,97 @@
 #!/usr/bin/env python3
-## Karlsruher Retweet Bot https://github.com/schlind/Karlsruher
+## Karlsruher Retweet Bot
+## https://github.com/schlind/Karlsruher
+
 from sys import version_info as python_version
 assert python_version >= (3,)
 
+##
+##
+from datetime import datetime
 import logging
 import sqlite3
+import tempfile
 import tweepy
+from os import path, remove
+from sys import argv
+from unittest import mock, TestCase
+from unittest import TestLoader, TestResult, TestSuite, TextTestRunner
 
-from datetime import datetime
-from os import path as fs, remove
-
-
+##
+##
 class Karlsruher:
 
-	logger = None
-	twitter = None
+	def __init__(self, home, twitter = None, database = None):
 
-	## sqlite3 connection
-	db = None
+		if not path.isdir(home):
+			raise Exception('Please specify a valid "home" directory.')
 
-	## a file to lock active instances against each other
-	lockFile = None
+		self.logger = logging.getLogger(self.__class__.__name__)
 
-	## a file to disable the retweet feature on-the-fly
-	sleepFile = None
+		self.doRetweet = False
+		self.doReply = False
 
-	## the Twitter user of the bot
-	me = None
-
-	## the list slug for the list of advisors on Twitter
-	advisorListSlug = 'advisors'
-	advisors = []
-	followers = []
-	friends = []
-
-	## features
-	doRetweets = False
-	doReplying = False
-	doTweeting = False
-
-
-	def __init__(self, workDir, twitterClient = None, database = None):
-		"""
-		Initialize connections to and load required data
-		from Twitter and database.
-
-		workDir - a directory for persistence
-		twitter - optional, a mock for tests
-		database - optional, for tests
-		"""
-		if not workDir:
-			raise Exception('No workDir specified.')
-
-		self.logger = logging.getLogger(__name__)
-
-		## take a specified client or create a new instance.
-		self.twitter = twitterClient if twitterClient else TwitterClient(workDir)
+		self.twitter = twitter if twitter else Twitter(home + '/credentials.py')
 		self.me = self.twitter.me()
-
 		self.logger.info('Hello, my name is @%s.', self.me.screen_name)
 
-		self.lockFile = workDir + '/.lock.' + self.me.screen_name.lower()
-		self.sleepFile = workDir + '/.sleep.' + self.me.screen_name.lower()
+		name = self.me.screen_name.lower()
+		self.lock = Lock(home + '/.lock.' + name)
 
-		self.initDatabase(
-			## take a specified database or use a default file.
-			database if database else workDir + '/'+ self.me.screen_name.lower() + '.db'
-		)
+		self.brain = Brain(database if database else home + '/'+ name + '.db')
+		self.logger.info('Having %s in brain.', self.brain.metrics())
 
-		self.initAdvisors(self.advisorListSlug)
-		self.initFollowers()
-		self.initFriends()
-
-
-
-
-	def acquireLock(self, lockFile = None):
-		"""Try to create a lockfile and return True when a new lockfile was
-		created, otherwise False."""
-		if not lockFile:
-			lockFile = self.lockFile
-		if fs.isfile(lockFile):
-			self.logger.debug('Is already locked: %s', lockFile)
-			return False
-		self.logger.debug('Locking: %s', lockFile)
-		open(lockFile, 'a').close()
-		return True
-
-	def returnLock(self, lockFile = None):
-		"""Remove a lockfile."""
-		if not lockFile:
-			lockFile = self.lockFile
-		self.logger.debug('Unlocking: %s', lockFile)
-		if fs.isfile(lockFile):
-			remove(lockFile)
-
-	def isLocked(self, lockFile = None):
-		"""Return True when a lockfile exists, otherwise False."""
-		if not lockFile:
-			lockFile = self.lockFile
-		if fs.isfile(lockFile):
-			self.logger.debug('Is locked: %s', lockFile)
-			return True
-		return False
-
-
-
-
-	def initDatabase(self, database):
-		"""Connect to database and ensure tables exist."""
-
-		createTables = [
-			'CREATE TABLE IF NOT EXISTS tweets (id VARCHAR PRIMARY KEY, user_screen_name VARCHAR NOT NULL, reason VARCHAR NOT NULL, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)',
-			'CREATE TABLE IF NOT EXISTS followers (id VARCHAR PRIMARY KEY, screen_name VARCHAR NOT NULL, state INTEGER DEFAULT 0, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)',
-			'CREATE TABLE IF NOT EXISTS friends (id VARCHAR PRIMARY KEY, screen_name VARCHAR NOT NULL, state INTEGER DEFAULT 0, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)'
-		]
-
-		self.logger.debug('Using "%s" as database.', database)
-		self.db = sqlite3.connect(database)
-		self.db.row_factory = sqlite3.Row
-		for createTable in createTables:
-			self.db.cursor().execute(createTable)
-			self.db.commit()
-
-	def rememberTweet(self, tweetId, userScreenName, reason = 'non reason given'):
-		"""Store a tweet's id, user's screen_name and a reason to database."""
-
-		self.logger.debug('Remembering tweet %s', tweetId)
-		remember = self.db.cursor()
-		remember.execute(
-			'INSERT OR IGNORE INTO tweets (id,user_screen_name,reason) VALUES (?,?,?)', (str(tweetId),str(userScreenName),str(reason))
-		)
-		self.db.commit()
-		return remember.rowcount
-
-	def haveReadTweet(self, tweetId):
-		"""Indicate whether a tweet was read before or not."""
-
-		haveRead = self.db.cursor()
-		haveRead.execute('SELECT id FROM tweets WHERE id = ?', (str(tweetId),))
-		haveRead = haveRead.fetchone()
-
-		self.logger.debug('Looking for tweet %s: %sfound.', tweetId, '' if haveRead else 'not ')
-		return haveRead != None
-
-	def countTweets(self, userScreenName = None, reason = None):
-		"""Count all tweets or all tweets by reason and/or user."""
-
-		counter = self.db.cursor()
-
-		if userScreenName and reason:
-			counter.execute(
-				'SELECT COUNT(id) AS count FROM tweets WHERE user_screen_name = ? AND reason = ?',
-				(str(userScreenName), str(reason))
-			)
-		elif userScreenName:
-			counter.execute(
-				'SELECT COUNT(id) AS count FROM tweets WHERE user_screen_name = ?',
-				(str(userScreenName),)
-			)
-		elif reason:
-			counter.execute(
-				'SELECT COUNT(id) AS count FROM tweets WHERE reason = ?',
-				(str(reason),)
-			)
-		else:
-			counter.execute('SELECT COUNT(id) AS count FROM tweets')
-
-		counter = counter.fetchone()
-
-		self.logger.debug(
-			'Counting tweets%s%s: %s',
-			' from @' + userScreenName if userScreenName else '',
-			', reason=' + reason if reason else '',
-			counter['count']
-		)
-
-		return counter['count']
-
-
-
-
-	def initAdvisors(self, listSlug):
-		"""Fetch list of advisors from Twitter."""
 		self.advisors = []
-		for user in self.twitter.list_members(self.me.screen_name, listSlug):
+		for user in self.twitter.list_advisors():
 			self.advisors.append(str(user.id))
-		self.logger.debug('Having %s advisors (list "%s").', len(self.advisors), listSlug)
-
-	def initFollowers(self):
-		"""Load followers from database."""
-		followers = self.db.cursor()
-		followers.execute('SELECT id FROM followers WHERE state > 0')
-		self.followers = []
-		for follower in followers.fetchall():
-			self.followers.append(str(follower['id']))
-		self.logger.debug('Having %s followers.', len(self.followers))
-
-	def initFriends(self):
-		"""Load friends from database."""
-		friends = self.db.cursor()
-		friends.execute('SELECT id FROM friends WHERE state > 0')
-		self.friends = []
-		for friend in friends.fetchall():
-			self.friends.append(str(friend['id']))
-		self.logger.debug('Having %s friends (I follow).', len(self.friends))
-
-
+		self.logger.debug('Having %s advisors.', len(self.advisors))
 
 
 	def houseKeeping(self):
-		"""Perform housekeeping actions."""
 
-		if not self.acquireLock():
+		if not self.lock.acquire():
+			self.logger.debug('Locked by "%s".', self.lock.path)
 			return
 
-		houseKeepingActions = [
-			self.fetchFollowersFromTwitter,
-			self.fetchFriendsFromTwitter
-		]
+		self.logger.info('Housekeeping! This may take a while...')
 
-		self.logger.info('Housekeeping!')
-		startTime = datetime.now()
-		for houseKeepingAction in houseKeepingActions:
-			try:
-				houseKeepingAction()
-			except Exception as e:
-				self.logger.exception('Exception during housekeeping.')
-
-		self.logger.info('Housekeeping done, took: %s', datetime.now() - startTime)
-		self.returnLock()
-
-	def fetchFollowersFromTwitter(self):
-		startTime = datetime.now()
-		limbo = self.db.cursor()
-		limbo.execute('UPDATE followers SET state = 2 WHERE state = 1')
-		self.db.commit()
-		self.logger.info('Having %s followers in limbo, updating with Twitter, this may take a while...', limbo.rowcount)
-		for follower in self.twitter.followers():
-			self.logger.debug('Adding follower %s @%s to database.', follower.id, follower.screen_name)
-			self.db.cursor().execute(
-				'INSERT OR REPLACE INTO followers (id,screen_name,state) VALUES (?,?,?)',
-				(str(follower.id), str(follower.screen_name), 1)
-			)
-			self.db.commit()
-
-		garbage = self.db.cursor()
-		garbage.execute('UPDATE followers SET state = 0 WHERE state = 2')
-		self.db.commit()
-		self.logger.info(
-			'Fetching followers done, lost %s followers, took: %s',
-			garbage.rowcount, datetime.now() - startTime
-		)
-		self.initFollowers()
-
-	def fetchFriendsFromTwitter(self):
-		startTime = datetime.now()
-		limbo = self.db.cursor()
-		limbo.execute('UPDATE friends SET state = 2 WHERE state = 1')
-		self.db.commit()
-		self.logger.info('Having %s friends in limbo, updating with Twitter, this may take a while...', limbo.rowcount)
-
-		for friend in self.twitter.friends():
-			self.logger.debug('Adding friend %s @%s to database.', friend.id, friend.screen_name)
-			self.db.cursor().execute(
-				'INSERT OR REPLACE INTO friends (id,screen_name,state) VALUES (?,?,?)',
-				(str(friend.id), str(friend.screen_name), 1)
-			)
-			self.db.commit()
-
-		garbage = self.db.cursor()
-		garbage.execute('UPDATE friends SET state = 0 WHERE state = 2')
-		self.db.commit()
-		self.logger.info('Fetching friends done, lost %s friends, took: %s', garbage.rowcount, datetime.now() - startTime)
-		self.initFriends()
-
-
-
-
-	def readMentions(self, items = 20):
-		"""Read latest mentions."""
-
-		if not self.acquireLock():
-			return
-
-		startTime = datetime.now()
-		self.logger.info('Reading mentions at %s',  str(startTime))
+		watch = StopWatch()
 		try:
-			for tweet in self.twitter.mentions_timeline(items):
-				if self.readMention(tweet):
-					pass
-		except Exception as e:
-			self.logger.exception('Exception while reading mentions.')
-		self.logger.info('Reading mentions took: %s, bye!', datetime.now() - startTime)
-		self.returnLock()
+			self.brain.importUsers('followers', self.twitter.followers)
+			self.brain.importUsers('friends', self.twitter.friends)
+		except:
+			self.logger.exception('Exception during housekeeping!')
+
+		self.logger.info('Housekeeping done, took %s.', watch.elapsedTime())
+		self.lock.release()
+
+
+	def readMentions(self):
+
+		if not self.lock.acquire():
+			self.logger.debug('Locked by "%s".', self.lock.path)
+			return
+
+		self.logger.info('Reading mentions...')
+
+		watch = StopWatch()
+		for mention in self.twitter.mentions_timeline():
+			try:
+				self.readMention(mention)
+			except:
+				self.logger.exception('Exception while reading mention.')
+
+		self.logger.info('Reading done, took %s.', watch.elapsedTime())
+		self.lock.release()
+
 
 	def readMention(self, tweet):
-		"""Read a single mention and apply actions."""
 
-		tweetLog = '@' + str(tweet.user.screen_name) + '/' + str(tweet.id)
+		tweetLog = '@{}/{}'.format(tweet.user.screen_name, tweet.id)
 
-		if self.haveReadTweet(tweet.id):
+		if self.brain.hasTweet(tweet):
 			self.logger.info('%s read before.', tweetLog)
-			return False ## because "not read again"
+			return False
 
 		appliedAction = 'readMention'
 
@@ -311,12 +100,9 @@ class Karlsruher:
 				appliedAction = action.__name__
 				break
 
+		self.brain.addTweet(tweet, appliedAction)
 		self.logger.info('%s applied %s.', tweetLog, appliedAction)
-
-		self.rememberTweet(tweet.id, tweet.user.screen_name, appliedAction)
-		return True ## because "read this time"
-
-
+		return True
 
 
 	def adviceAction(self, tweet):
@@ -325,121 +111,75 @@ class Karlsruher:
 			return False ## not an advisor
 
 		message = str(tweet.text)
-		trigger = str('@' + self.me.screen_name + '!').lower()
+		trigger = '@{}!'.format(self.me.screen_name.lower())
 
 		if not message.lower().startswith(trigger):
 			return False ## not an advice
 
-		## strip trigger from message to get the spelled advice
 		advice = message[len(trigger):].strip()
 
-		## advice: disable retweet feature on the fly
 		if advice.lower() == 'geh schlafen!':
 			self.logger.info(
-				'Taking advice "%s" from %s.', advice, tweet.user.screen_name
+				'Taking advice "%s" from @%s.',
+				advice, tweet.user.screen_name
 			)
-
-			self.acquireLock(self.sleepFile)
-
-			if self.doReplying:
-				self.twitter.update_status(
-					in_reply_to_status_id = tweet.id,
-					status = 'Ok @' + tweet.user.screen_name + ', ich gehe schlafen und retweete eine Weile nicht mehr... (Automatische Antwort)'
-				)
+			self.brain.setValue('retweet.disabled', True)
+			self.reply(tweet, 'Ok @{}, ich retweete nicht mehr... (Automatische Antwort)')
 			return True ## took advice
 
-		## advice: enable retweet feature on the fly
 		if advice.lower() == 'wach auf!':
 			self.logger.info(
-				'Taking advice "%s" from %s.', advice, tweet.user.screen_name
+				'Taking advice "%s" from @%s.',
+				advice, tweet.user.screen_name
 			)
-
-			self.returnLock(self.sleepFile)
-
-			if self.doReplying:
-				self.twitter.update_status(
-					in_reply_to_status_id = tweet.id,
-					status = 'Ok @' + tweet.user.screen_name + ', ich wache auf und retweete gleich wieder... (Automatische Antwort)'
-				)
+			self.brain.setValue('retweet.disabled', None)
+			self.reply(tweet, 'Ok @{}, ich retweete wieder... (Automatische Antwort)')
 			return True ## took advice
 
 		return False ## did not take advice
 
 
+	def reply(self, tweet, status):
+
+		if self.doReply:
+			self.twitter.update_status(
+				in_reply_to_status_id = tweet.id,
+				status = status.format(tweet.user.screen_name)
+			)
+
+
 	def retweetAction(self, tweet):
 
-		if self.isLocked(self.sleepFile):
-			self.logger.debug('I am sleeping, no retweet action.')
-			return False
+		if self.brain.getValue('retweet.disabled') == True:
+			self.logger.debug('I am sleeping and not retweeting.')
+			return False ## no retweets
 
 		if str(tweet.user.screen_name) == str(self.me.screen_name):
 			self.logger.debug('@%s is me, no retweet.', tweet.user.screen_name)
-			return False
+			return False ## not retweeting myself
 
 		if str(tweet.user.protected) == 'True':
-			self.logger.debug('@%s is protected, no retweet.', tweet.user.screen_name)
-			return False
+			self.logger.debug('@%s protected, no retweet.', tweet.user.screen_name)
+			return False ## can't retweet protected users
 
-		if str(tweet.in_reply_to_status_id_str) != 'None':
-			self.logger.debug('@%s wrote reply, no retweet.', tweet.user.screen_name)
-			return False
+		if str(tweet.in_reply_to_status_id) != 'None':
+			self.logger.debug('@%s reply, no retweet.', tweet.user.screen_name)
+			return False ## not retweeting replies
 
-		if str(tweet.user.id) not in self.followers:
-			self.logger.debug('@%s is not following, no retweet.', tweet.user.screen_name)
-			return False
+		if not self.brain.hasUser('followers', tweet.user.id):
+			self.logger.debug('@%s not following, no retweet.', tweet.user.screen_name)
+			return False ## not retweeting non-followers
 
-		self.logger.debug(
-			'@%s retweeting.%s',
-			tweet.user.screen_name,
-			'' if self.doRetweets else ' (not really)'
-		)
+		self.logger.debug('@%s retweet candidate.', tweet.user.screen_name)
 
-		if self.doRetweets:
-			self.twitter.retweet(tweet.id)
+		if self.doRetweet:
+			self.twitter.retweet(tweet)
 
-		return True
-
+		return True ## logically retweeted
 
 ##
 ##
-##
-##
-
-import tempfile
-from unittest import mock, TestCase, TestLoader, TestResult, TestSuite, TextTestRunner
-
 class KarlsruherTest(TestCase):
-
-	@staticmethod
-	def getTestSuite():
-		testSuite = TestSuite()
-		testSuite.addTest(TestLoader().loadTestsFromTestCase(KarlsruherTest))
-		return testSuite
-
-	@staticmethod
-	def runVerboseAndExit():
-		TextTestRunner(failfast = True).run(KarlsruherTest.getTestSuite())
-		exit(0)
-
-	@staticmethod
-	def runSilent():
-		testresult = TestResult()
-		testresult.failfast = True
-		KarlsruherTest.getTestSuite().run(testresult)
-		return 0 == len(testresult.errors) == len(testresult.failures)
-
-
-	## The bot to be tested
-	bot = None
-
-	## Testdata
-	me = None
-	advisor = None
-	follower = None
-	friend = None
-	unknown = None
-	tweet = None
-
 
 	def setUp(self):
 		self.me = mock.Mock(id = 123, screen_name = 'MockBot')
@@ -448,232 +188,450 @@ class KarlsruherTest(TestCase):
 		self.friend = mock.Mock(id = 6, screen_name = 'friend')
 		self.unknown = mock.Mock(id = 7, screen_name = 'unknown')
 		self.tweet = mock.Mock(
-			id = 4711, user = self.unknown,
-			in_reply_to_status_id_str = None,
-			text = 'Just mentioning @MockBot for no reason.'
+			in_reply_to_status_id = None, id = 4711, user = self.unknown,
+			text = 'Test mentioning @MockBot for no reason.'
 		)
-		## configure instance with mocks
 		self.bot = Karlsruher(
-			workDir = tempfile.gettempdir(),
+			home = tempfile.gettempdir(),
 			database = ':memory:',
-			twitterClient = mock.Mock(
-				me = mock.MagicMock(return_value=self.me),
-				list_members = mock.MagicMock(return_value=[self.advisor]),
-				followers = mock.MagicMock(return_value=[self.follower,self.advisor]),
-				friends = mock.MagicMock(return_value=[self.friend]),
+			twitter = mock.Mock(
+				me = mock.MagicMock(return_value = self.me),
+				list_advisors = mock.MagicMock(return_value = [self.advisor]),
+				followers = mock.MagicMock(return_value = [self.follower,self.advisor]),
+				friends = mock.MagicMock(return_value = [self.friend]),
 				update_status = mock.Mock(),
 				retweet = mock.Mock(),
 			)
 		)
 
 	def tearDown(self):
-		self.bot.returnLock()
-		self.bot.returnLock(self.bot.sleepFile)
+		self.bot.lock.release()
 
+	def test_000_setup_ok_not_locked(self):
+		self.assertFalse(self.bot.lock.isPresent())
 
-	def test_000_setup_ok(self):
-		self.assertEqual(0, self.bot.countTweets())
-		self.assertEqual(1, self.bot.twitter.me.call_count)
+	def test_101_can_get_me(self):
 		self.assertEqual(self.bot.me.screen_name, 'MockBot')
-		self.assertEqual(1, self.bot.twitter.list_members.call_count)
+		self.assertEqual(1, self.bot.twitter.me.call_count)
+
+	def test_102_can_load_advisors(self):
+		self.assertEqual(1, self.bot.twitter.list_advisors.call_count)
 		self.assertEqual(1, len(self.bot.advisors))
-		self.assertEqual(0, len(self.bot.followers))
-		self.assertEqual(0, len(self.bot.friends))
-		self.assertFalse(self.bot.isLocked())
-		self.assertFalse(self.bot.isLocked(self.bot.sleepFile))
-
-	def test_001_can_lock_and_unlock(self):
-		"""Ensure locking mechanics work."""
-		self.assertTrue(self.bot.acquireLock())
-		self.assertTrue(self.bot.isLocked())
-		self.assertFalse(self.bot.acquireLock())
-		self.bot.returnLock()
-		self.assertFalse(self.bot.isLocked())
-
-	def test_002_can_lock_and_unlock_file(self):
-		"""Ensure locking mechanics work."""
-		self.assertTrue(self.bot.acquireLock(self.bot.sleepFile))
-		self.assertTrue(self.bot.isLocked(self.bot.sleepFile))
-		self.assertFalse(self.bot.acquireLock(self.bot.sleepFile))
-		self.bot.returnLock(self.bot.sleepFile)
-		self.assertFalse(self.bot.isLocked(self.bot.sleepFile))
-
-	def test_003_can_do_housekeeping(self):
-		"""Ensure housekeeping works."""
-		self.bot.houseKeeping()
-		self.assertEqual(1, len(self.bot.advisors))
-		self.assertEqual(2, len(self.bot.followers))
-		self.assertEqual(1, len(self.bot.friends))
 		self.assertTrue(str(self.advisor.id) in self.bot.advisors)
-		self.assertTrue(str(self.advisor.id) in self.bot.followers)
-		self.assertTrue(str(self.follower.id) in self.bot.followers)
-		self.assertTrue(str(self.friend.id) in self.bot.friends)
 		self.assertFalse(str(self.unknown.id) in self.bot.advisors)
-		self.assertFalse(str(self.unknown.id) in self.bot.followers)
-		self.assertFalse(str(self.unknown.id) in self.bot.friends)
 
-	def test_101_can_remember_and_count_tweets(self):
-		"""Ensure tweet database works."""
-		self.bot.rememberTweet(1, 'user', 'A')
-		self.bot.rememberTweet(2, 'other', 'B')
-		self.bot.rememberTweet(3, 'user', 'C')
-		self.assertEqual(3, self.bot.countTweets())
-		self.assertFalse(self.bot.haveReadTweet(7))
-		self.assertTrue(self.bot.haveReadTweet(1))
-		self.assertTrue(self.bot.haveReadTweet(2))
-		self.assertTrue(self.bot.haveReadTweet(3))
-		self.assertEqual(1, self.bot.countTweets(reason='A'))
-		self.assertEqual(1, self.bot.countTweets(reason='B'))
-		self.assertEqual(1, self.bot.countTweets(reason='C', userScreenName='user'))
-		self.assertEqual(0, self.bot.countTweets(reason='D'))
-		self.assertEqual(2, self.bot.countTweets(userScreenName='user'))
-		self.assertEqual(1, self.bot.countTweets(userScreenName='other'))
-		self.assertEqual(0, self.bot.countTweets(reason='D',userScreenName='none'))
+	def test_201_setup_ok_brain_empty(self):
+		self.assertEqual(0, self.bot.brain.countTweets())
+		self.assertEqual(0, len(self.bot.brain.users('followers')))
+		self.assertEqual(0, len(self.bot.brain.users('friends')))
+		self.assertIsNone(self.bot.brain.getValue('retweet.disabled'))
 
-	def test_201_read_mention_only_once(self):
-		"""Ensure to read and act only once per tweet."""
-		self.tweet.user = self.follower
+	def test_302_can_do_housekeeping(self):
+		self.bot.houseKeeping()
+		self.assertEqual(2, len(self.bot.brain.users('followers')))
+		self.assertEqual(1, len(self.bot.brain.users('friends')))
+
+	def test_401_read_mention_only_once(self):
 		self.assertTrue(self.bot.readMention(self.tweet))
 		self.assertFalse(self.bot.readMention(self.tweet))
 
-	def test_301_advice_ignore_from_non_advisors(self):
-		"""Ensure to not take advices from arbitrary users."""
-		self.tweet.user = self.unknown
+	def test_501_advice_ignore_from_non_advisors(self):
 		self.tweet.text = '@MoCkBoT! gEh scHlafen!'
 		self.assertFalse(self.bot.adviceAction(self.tweet))
 
-	def test_302_advice_sleep(self):
-		"""Ensure to accept an advice to sleep."""
-		self.tweet.user = self.advisor
+	def test_502_advice_sleep(self):
 		self.tweet.text = '@MoCkBoT! gEh scHlafen!'
-		self.assertTrue(self.bot.adviceAction(self.tweet))
-		self.assertTrue(self.bot.isLocked(self.bot.sleepFile))
-
-	def test_303_advice_wakeup(self):
-		"""Ensure to accept an advice to wake up."""
-		self.assertTrue(self.bot.acquireLock(self.bot.sleepFile))
-		self.assertTrue(self.bot.isLocked(self.bot.sleepFile))
 		self.tweet.user = self.advisor
-		self.tweet.text = '@MoCkBoT! wAcH aUf!'
 		self.assertTrue(self.bot.adviceAction(self.tweet))
-		self.assertFalse(self.bot.isLocked(self.bot.sleepFile))
+		self.assertTrue(self.bot.brain.getValue('retweet.disabled'))
 
-	def test_501_retweet_follower(self):
-		"""Ensure to retweet followers."""
+	def test_503_advice_wakeup(self):
+		self.tweet.text = '@MoCkBoT! wAcH aUf!'
+		self.tweet.user = self.advisor
+		self.bot.brain.setValue('retweet.disabled', True)
+		self.assertTrue(self.bot.adviceAction(self.tweet))
+		self.assertIsNone(self.bot.brain.getValue('retweet.disabled'))
+
+	def test_601_retweet_follower(self):
 		self.bot.houseKeeping()
-		self.bot.doRetweets = True
+		self.bot.doRetweet = True
 		self.tweet.user = self.follower
 		self.assertTrue(self.bot.retweetAction(self.tweet))
 		self.assertEqual(1, self.bot.twitter.retweet.call_count)
 
-	def test_502_retweet_follower(self):
-		"""Ensure to retweet followers."""
+	def test_602_retweet_not_when_readonly(self):
 		self.bot.houseKeeping()
-		self.bot.doRetweets = False
+		self.bot.doRetweet = False
 		self.tweet.user = self.follower
 		self.assertTrue(self.bot.retweetAction(self.tweet))
 		self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
-	def test_503_retweet_not_self(self):
-		"""Ensure to not retweet self."""
+	def test_603_retweet_not_self(self):
 		self.bot.houseKeeping()
-		self.bot.doRetweets = True
+		self.bot.doRetweet = True
 		self.tweet.user = self.me
 		self.assertFalse(self.bot.retweetAction(self.tweet))
 		self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
-	def test_504_retweet_not_non_followers(self):
-		"""Ensure to not retweet non-followers."""
+	def test_604_retweet_not_non_followers(self):
 		self.bot.houseKeeping()
-		self.bot.doRetweets = True
-		self.tweet.user = self.unknown
+		self.bot.doRetweet = True
 		self.assertFalse(self.bot.retweetAction(self.tweet))
 		self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
-	def test_505_retweet_not_protected(self):
-		"""Ensure to not retweet protected users."""
+	def test_605_retweet_not_protected(self):
 		self.bot.houseKeeping()
-		self.bot.doRetweets = True
-		for user in [ self.follower, self.advisor ]:
+		self.bot.doRetweet = True
+		for user in [
+			self.me, self.advisor, self.follower, self.friend, self.unknown
+		]:
 			self.tweet.user = user
 			self.tweet.user.protected = True
 			self.assertFalse(self.bot.retweetAction(self.tweet))
 		self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
-	def test_506_retweet_not_replies(self):
-		"""Ensure to not retweet replies."""
+	def test_606_retweet_not_replies(self):
 		self.bot.houseKeeping()
-		self.bot.doRetweets = True
+		self.bot.doRetweet = True
+		self.tweet.in_reply_to_status_id = 7500
 		for user in [
-			self.me, self.unknown,
-			self.follower, self.advisor
+			self.me, self.advisor, self.follower, self.friend, self.unknown
 		]:
 			self.tweet.user = user
-			self.tweet.in_reply_to_status_id_str = '7500'
 			self.assertFalse(self.bot.retweetAction(self.tweet))
 		self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
-	def test_507_retweet_not_during_sleep(self):
-		"""Ensure to not retweet during sleep."""
+	def test_607_retweet_not_during_sleep(self):
 		self.bot.houseKeeping()
-		self.bot.doRetweets = True
+		self.bot.doRetweet = True
 		self.tweet.user = self.follower
-		self.assertTrue(self.bot.acquireLock(self.bot.sleepFile))
+		self.bot.brain.setValue('retweet.disabled', True)
 		self.assertFalse(self.bot.retweetAction(self.tweet))
 		self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
 
 ##
 ##
-##
-##
+class Brain:
+
+	schema = [
+		'CREATE TABLE IF NOT EXISTS config (name VARCHAR PRIMARY KEY, value VARCHAR DEFAULT NULL, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)',
+		'CREATE TABLE IF NOT EXISTS tweets (id VARCHAR PRIMARY KEY, user_screen_name VARCHAR NOT NULL, reason VARCHAR NOT NULL, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)',
+		'CREATE TABLE IF NOT EXISTS followers (id VARCHAR PRIMARY KEY, screen_name VARCHAR NOT NULL, state INTEGER DEFAULT 0, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)',
+		'CREATE TABLE IF NOT EXISTS friends (id VARCHAR PRIMARY KEY, screen_name VARCHAR NOT NULL, state INTEGER DEFAULT 0, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)',
+	]
+
+	def __init__(self, database):
+
+		self.logger = logging.getLogger(self.__class__.__name__)
+
+		self.db = sqlite3.connect(database)
+		self.db.row_factory = sqlite3.Row
+
+		for createTable in self.schema:
+			self.db.cursor().execute(createTable)
+			self.db.commit()
 
 
-class TwitterClient:
+	def setValue(self, name, value = None):
 
-	logger = None
-	api = None
-
-	def __init__(self, runDir):
-
-		self.logger = logging.getLogger(__name__)
-
-		credentials = runDir + '/credentials.py'
-
-		if not fs.isfile(credentials):
-			self.logger.error('Ooops, missing file: %s', credentials)
-			raise Exception(
-				'Credentials missing!', credentials,
-				'(Please use the provided example file and your own API keys to create this file.)'
+		cursor = self.db.cursor()
+		if value == None:
+			cursor.execute('DELETE FROM config WHERE name = ?', (str(name),))
+		else:
+			cursor.execute(
+				'INSERT OR REPLACE INTO config (name,value) VALUES (?,?)',
+				(str(name), str(value))
 			)
+		self.db.commit()
+		return cursor.rowcount
 
-		self.logger.debug('Using credentials from %s.', credentials)
-		from credentials import TWITTER_CONSUMER_KEY
-		from credentials import TWITTER_CONSUMER_SECRET
-		from credentials import TWITTER_ACCESS_KEY
-		from credentials import TWITTER_ACCESS_SECRET
 
-		self.logger.debug('Connecting to Twitter...')
-		oauth = tweepy.OAuthHandler(TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET)
+	def getValue(self, name, default = None):
+
+		cursor = self.db.cursor()
+		cursor.execute('SELECT value FROM config WHERE name = ?', (str(name),))
+		value = cursor.fetchone()
+		if value:
+			value = value['value']
+			if value == 'True':
+				return True
+			if value == 'False':
+				return False
+			if value == 'None':
+				return None
+			return value
+		return default
+
+
+	def hasTweet(self, tweet):
+
+		haveRead = self.db.cursor()
+		haveRead.execute(
+			'SELECT id FROM tweets WHERE id = ?',
+			(str(tweet.id),)
+		)
+		return haveRead.fetchone() != None
+
+
+	def addTweet(self, tweet, reason):
+
+		remember = self.db.cursor()
+		remember.execute(
+			'INSERT OR IGNORE INTO tweets (id,user_screen_name,reason) VALUES (?,?,?)',
+			(str(tweet.id), str(tweet.user.screen_name), str(reason))
+		)
+		self.db.commit()
+		return remember.rowcount
+
+
+	def countTweets(self, userScreenName = None, reason = None):
+
+		count = 'SELECT COUNT(id) AS count FROM tweets'
+		where = ()
+		if userScreenName and reason:
+			count += ' WHERE user_screen_name = ? AND reason = ?'
+			where = (str(userScreenName), str(reason))
+		elif userScreenName:
+			count += ' WHERE user_screen_name = ?'
+			where = (str(userScreenName),)
+		elif reason:
+			count += ' WHERE reason = ?'
+			where = (str(reason),)
+		counter = self.db.cursor()
+		counter.execute(count, where)
+		return counter.fetchone()['count']
+
+
+	def users(self, table):
+
+		users = self.db.cursor()
+		users.execute(
+			'SELECT id FROM {} WHERE state > 0'.format(table)
+		)
+		return users.fetchall()
+
+
+	def hasUser(self, table, userId):
+
+		user = self.db.cursor()
+		user.execute(
+			'SELECT id, screen_name FROM {} WHERE state > 0 and id = ?'.format(table),
+			(str(userId),)
+		)
+		return user.fetchone() != None
+
+
+	def importUsers(self, table, source):
+
+		self.db.cursor().execute('UPDATE {} SET state = 2 WHERE state = 1'.format(table))
+		self.db.commit()
+
+		for user in source():
+			self.db.cursor().execute(
+				'INSERT OR REPLACE INTO {} (id,screen_name,state) VALUES (?,?,?)'.format(table),
+				(str(user.id), str(user.screen_name), 3)
+			)
+			self.db.commit()
+
+		self.db.cursor().execute('UPDATE {} SET state = 0 WHERE state = 2'.format(table))
+		self.db.commit()
+
+		self.db.cursor().execute('UPDATE {} SET state = 1 WHERE state = 3'.format(table))
+		self.db.commit()
+
+
+	def metrics(self):
+
+		counter = self.db.cursor()
+		counter.execute('SELECT COUNT(name) AS count FROM config')
+		configCount = counter.fetchone()['count']
+		counter.execute('SELECT COUNT(id) AS count FROM tweets')
+		tweetCount = counter.fetchone()['count']
+		counter.execute('SELECT COUNT(id) AS count FROM followers')
+		followerCount = counter.fetchone()['count']
+		counter.execute('SELECT COUNT(id) AS count FROM friends')
+		friendCount = counter.fetchone()['count']
+		return '{} tweets, {} followers, {} friends, {} values'.format(
+			tweetCount, followerCount, friendCount, configCount
+		)
+
+
+##
+##
+class BrainTest(TestCase):
+
+	def setUp(self):
+		self.brain = Brain(':memory:')
+
+	def test_001_can_get_default_value(self):
+		self.assertEqual('default', self.brain.getValue('test', 'default'))
+
+	def test_002_can_set_get_string_value(self):
+		self.brain.setValue('test', 'string')
+		self.assertEqual('string', self.brain.getValue('test'))
+
+	def test_003_can_set_get_true(self):
+		self.brain.setValue('test', True)
+		self.assertTrue(self.brain.getValue('test'))
+
+	def test_004_can_set_get_false(self):
+		self.brain.setValue('test', False)
+		self.assertFalse(self.brain.getValue('test'))
+
+	def test_005_can_set_get_none(self):
+		self.brain.setValue('test')
+		self.assertIsNone(self.brain.getValue('test'))
+		self.assertFalse(self.brain.getValue('test'))
+
+	def test_101_can_remember_tweets(self):
+		tweet = mock.Mock(id=1,user=mock.Mock(id=1,screen_name='user1'))
+		self.assertFalse(self.brain.hasTweet(tweet))
+		self.assertEqual(1, self.brain.addTweet(tweet, 'test'))
+		self.assertEqual(0, self.brain.addTweet(tweet, 'test'))
+		self.assertTrue(self.brain.hasTweet(tweet))
+
+	def test_102_can_count_tweets(self):
+		self.brain.addTweet(mock.Mock(id = 1, user = mock.Mock(id = 1, screen_name = 'user1')), 'A')
+		self.brain.addTweet(mock.Mock(id = 2, user = mock.Mock(id = 1, screen_name = 'user1')), 'B')
+		self.brain.addTweet(mock.Mock(id = 3, user = mock.Mock(id = 2, screen_name = 'user2')), 'A')
+		self.assertEqual(3, self.brain.countTweets())
+		self.assertEqual(2, self.brain.countTweets(reason = 'A'))
+		self.assertEqual(1, self.brain.countTweets(reason = 'B'))
+		self.assertEqual(0, self.brain.countTweets(reason = 'x'))
+		self.assertEqual(2, self.brain.countTweets(userScreenName = 'user1'))
+		self.assertEqual(1, self.brain.countTweets(userScreenName = 'user2'))
+		self.assertEqual(0, self.brain.countTweets(userScreenName = 'x'))
+		self.assertEqual(1, self.brain.countTweets(reason = 'A', userScreenName = 'user1'))
+		self.assertEqual(1, self.brain.countTweets(reason = 'A', userScreenName = 'user2'))
+		self.assertEqual(1, self.brain.countTweets(reason = 'B', userScreenName = 'user1'))
+		self.assertEqual(0, self.brain.countTweets(reason = 'x', userScreenName = 'x'))
+
+	def __data_for_test_201(self):
+		return [
+			mock.Mock(id = 1, screen_name = 'user1'),
+			mock.Mock(id = 2, screen_name = 'user2'),
+			mock.Mock(id = 3, screen_name = 'user3'),
+		]
+
+	def test_201_can_handle_users(self):
+		for table in ['followers', 'friends']:
+			self.brain.importUsers(table , self.__data_for_test_201)
+			self.assertEqual(3, len(self.brain.users(table)))
+			self.assertTrue(self.brain.hasUser(table, 2))
+			self.assertFalse(self.brain.hasUser(table, 7))
+
+
+##
+##
+class StopWatch:
+
+	def __init__(self):
+		self.start = datetime.now()
+
+	def elapsedTime(self):
+		return datetime.now() - self.start
+
+
+##
+##
+class StopWatchTest(TestCase):
+
+	def test_001_can_read_elapsed_time(self):
+		self.assertEqual('0:00:00.00' , str(StopWatch().elapsedTime())[:10])
+
+
+##
+##
+class Lock:
+
+	def __init__(self, path):
+		self.path = path
+
+	def isPresent(self):
+		return path.isfile(self.path)
+
+	def acquire(self):
+		if self.isPresent():
+			return False
+		open(self.path, 'a').close()
+		return self.isPresent()
+
+	def release(self):
+		if self.isPresent():
+			remove(self.path)
+
+
+##
+##
+class LockTest(TestCase):
+
+	def setUp(self):
+		self.lock = Lock(tempfile.gettempdir() + '/LockTest.tmp')
+
+	def tearDown(self):
+		self.lock.release()
+
+	def test_001_can_indicate(self):
+		self.assertFalse(self.lock.isPresent())
+
+	def test_002_can_acquire(self):
+		self.assertTrue(self.lock.acquire())
+		self.assertTrue(self.lock.isPresent())
+
+	def test_003_can_acquire_only_once(self):
+		self.assertTrue(self.lock.acquire())
+		self.assertFalse(self.lock.acquire())
+
+	def test_004_can_release(self):
+		self.lock.release()
+		self.assertFalse(self.lock.isPresent())
+
+
+##
+##
+class Twitter:
+
+	def __init__(self, credentials):
+
+		if not path.isfile(credentials):
+			print('Missing credentials file:', credentials)
+			print('Please create this file with this contents:')
+			print()
+			print("#!/usr/bin/env python3")
+			print("TWITTER_CONSUMER_KEY = 'Your Consumer Key'")
+			print("TWITTER_CONSUMER_SECRET = 'Your Consumer Secret'")
+			print("TWITTER_ACCESS_KEY = 'Your Access Key'")
+			print("TWITTER_ACCESS_SECRET = 'Your Access Secret'")
+			print()
+			exit(1)
+
+		from credentials import \
+			TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET, \
+			TWITTER_ACCESS_KEY, TWITTER_ACCESS_SECRET
+
+		oauth = tweepy.OAuthHandler(
+			TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET
+		)
 		oauth.set_access_token(TWITTER_ACCESS_KEY, TWITTER_ACCESS_SECRET)
+
 		self.api = tweepy.API(
 			oauth, compression = True,
 			wait_on_rate_limit = True, wait_on_rate_limit_notify = True
 		)
 
+
 	def me(self):
-		me = self.api.me()
-		self.logger.debug('me() response: %s', me)
-		return me
+		return self.api.me()
 
-	def mentions_timeline(self, items = 20):
-		self.api.mentions_timeline.pagination_mode = 'cursor'
-		for mention in tweepy.Cursor(self.api.mentions_timeline).items(items):
-			yield mention
+	def mentions_timeline(self):
+		return self.api.mentions_timeline()
 
-	def list_members(self, owner, slug):
+	def list_advisors(self):
 		self.api.list_members.pagination_mode = 'cursor'
-		for member in tweepy.Cursor(self.api.list_members, owner, slug).items():
+		for member in tweepy.Cursor(
+			self.api.list_members, self.me().screen_name, 'advisors'
+		).items():
 			yield member
 
 	def followers(self):
@@ -687,110 +645,124 @@ class TwitterClient:
 			yield friend
 
 	def retweet(self, tweet):
-		try:
-			response = self.api.retweet(tweet.id)
-			self.logger.debug('retweet() response: %s', response)
-			return response
-		except Exception as e:
-			self.logger.exception('API call "retweet".')
-		return None
+		return self.api.retweet(tweet.id)
 
 	def update_status(self, status, in_reply_to_status_id = None):
-		try:
-			if not in_reply_to_status_id:
-				response = self.api.update_status(status = status)
-			else:
-				response = self.api.update_status(
-					status = status,
-					in_reply_to_status_id = in_reply_to_status_id
-				)
-			self.logger.debug('update_status() response: %s', response)
-			return response
-		except Exception as e:
-			self.logger.exception('API call "update_status".')
-		return None
+		if in_reply_to_status_id:
+			return self.api.update_status(
+				in_reply_to_status_id = in_reply_to_status_id, status = status
+			)
+		return self.api.update_status(status = status)
+
+
+##
+##
+class SelfTest:
+
+	@staticmethod
+	def getSuite():
+		suite = TestSuite()
+		loader = TestLoader()
+		suite.addTest(loader.loadTestsFromTestCase(StopWatchTest))
+		suite.addTest(loader.loadTestsFromTestCase(LockTest))
+		suite.addTest(loader.loadTestsFromTestCase(BrainTest))
+		suite.addTest(loader.loadTestsFromTestCase(KarlsruherTest))
+		return suite
+
+	@staticmethod
+	def runVerbose():
+		TextTestRunner(
+			verbosity = 2, failfast = True
+		).run(SelfTest.getSuite())
+
+	@staticmethod
+	def isSuccessful():
+		result = TestResult()
+		result.failfast = True
+		SelfTest.getSuite().run(result)
+		return 0 == len(result.errors) == len(result.failures)
+
 
 ##
 ##
-##
-##
-
-
 class CommandLine:
 
-	"""The @Karlsruher Retweet Robot
-
-  * Retweet followers (but not any tweet)
-  * Listen for advices (remote commands)
+	"""@Karlsruher Retweet Robot command line
 
   Run Modes:
 
 	-test	Only perform self-tests verbosely and exit.
 
-  or
+  or:
 
-	-read	Read timelines and perform activities (silently)
-		This reads mentions only for now. All read tweets will be
-		remembered and won't be read again.
+	-read	Read timelines and trigger activities.
 
-    and additionally
+    and add activities:
 
- 	-talk	All of -tweet, -reply, -retweet
-	-retweet	Send retweets, otherwise just log
-	-reply	Send replies (responses), otherwise just log
-	-tweet	Send tweets (status messages), otherwise just log
+		-retweet	Send retweets.
+		-reply		Send replies.
 
-	# Cronjob (all 5 minutes):
-	*/5 * * * * /path/to/karlsruher/run.py -read -talk >/dev/null 2>&1
+  or:
 
-  or
-	-housekeeping	Only perform housekeeping tasks and exit.
+	-talk	Combines "-read" and all activities.
+
+	# Cronjob (every 5 minutes):
+	*/5 * * * * /path/to/karlsruher/run.py -talk >/dev/null 2>&1
+
+
+  or:
+
+	-housekeeping	Perform housekeeping tasks and exit.
 		This fetches followers and friends from Twitter.
 		Due to API Rate Limits, housekeeping is throttled
-		and takes up to 1 hour per 1000 followers.
+		and takes up to 1 hour per 1000 followers/friends.
+		Run this nightly once per day.
 
-	# Cronjob (run once per day):
+	# Cronjob (once per day):
 	3 3 * * * /path/to/karlsruher/run.py -housekeeping >/dev/null 2>&1
 
 
-  -help		what you are reading right now
+  or:
 
-  Use "-debug" to raise overall logging level."""
+	-help	You are reading this right now.
+
+
+  Add "-debug" to raise overall logging level.
+	"""
 
 
 	@staticmethod
-	def run(workDir, arguments):
+	def run(home):
 
-		if '-test' in arguments:
+		if '-test' in argv:
 			logging.basicConfig(
-				level = logging.DEBUG if '-debug' in arguments else logging.ERROR,
-				format = '%(levelname)-5.5s [%(funcName)s]: %(message)s',
+				level = logging.DEBUG if '-debug' in argv else logging.ERROR,
+				format = '%(levelname)-5.5s [%(name)s.%(funcName)s]: %(message)s',
 				handlers = [logging.StreamHandler()]
 			)
-			KarlsruherTest.runVerboseAndExit()
+			SelfTest.runVerbose()
+			exit(0)
 
-		if not KarlsruherTest.runSilent():
+		if not SelfTest.isSuccessful():
 			print("Selftest failed, aborting.")
 			print("Run again with -test -debug to see what fails.")
 			exit(1)
 
 		logging.basicConfig(
-			level = logging.DEBUG if '-debug' in arguments else logging.INFO,
-			format = '%(asctime)s %(levelname)-5.5s [%(module)s#%(funcName)s]: %(message)s',
+			level = logging.DEBUG if '-debug' in argv else logging.INFO,
+			format = '%(asctime)s %(levelname)-5.5s [%(name)s.%(funcName)s]: %(message)s',
 			handlers = [logging.StreamHandler()]
 		)
 
-		if '-read' in arguments:
-			k = Karlsruher(workDir)
-			k.doTweeting = '-tweet' in arguments or '-talk' in arguments
-			k.doReplying = '-reply' in arguments or '-talk' in arguments
-			k.doRetweets = '-retweet' in arguments or '-talk' in arguments
-			k.readMentions()
+		if '-housekeeping' in argv:
+			Karlsruher(home).houseKeeping()
 			exit(0)
 
-		if '-housekeeping' in arguments:
-			k = Karlsruher(workDir)
-			k.houseKeeping()
+		if '-read' in argv or '-talk' in argv:
+			karlsruher = Karlsruher(home)
+			karlsruher.doReply = '-reply' in argv or '-talk' in argv
+			karlsruher.doRetweet = '-retweet' in argv or '-talk' in argv
+			karlsruher.readMentions()
 			exit(0)
 
 		print(CommandLine.__doc__)
