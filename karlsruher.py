@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 ## Karlsruher Retweet Bot
 ## https://github.com/schlind/Karlsruher
 
@@ -391,29 +390,27 @@ class Brain:
 
 	def hasTweet(self, tweet):
 
-		haveRead = self.db.cursor()
-		haveRead.execute('SELECT id FROM tweets WHERE id = ?', (str(tweet.id),))
-		haveRead = haveRead.fetchone()
-
+		cursor = self.db.cursor()
+		cursor.execute('SELECT id FROM tweets WHERE id = ?', (str(tweet.id),))
+		haveTweet = cursor.fetchone() != None
 		self.logger.debug('%s tweet "%s".',
-			'Having' if haveRead != None else 'Not having',
+			'Having' if haveTweet else 'Not having',
 			tweet.id
 		)
-
-		return haveRead != None
+		return haveTweet
 
 
 	def addTweet(self, tweet, reason):
 
 		self.logger.debug('Adding tweet "%s".', tweet.id)
 
-		remember = self.db.cursor()
-		remember.execute(
+		cursor = self.db.cursor()
+		cursor.execute(
 			'INSERT OR IGNORE INTO tweets (id,user_screen_name,reason) VALUES (?,?,?)',
 			(str(tweet.id), str(tweet.user.screen_name), str(reason))
 		)
 		self.db.commit()
-		return remember.rowcount
+		return cursor.rowcount
 
 
 	def countTweets(self, screenName = None, reason = None):
@@ -430,9 +427,9 @@ class Brain:
 			count += ' WHERE reason = ?'
 			where = (str(reason),)
 
-		counter = self.db.cursor()
-		counter.execute(count, where)
-		countValue = counter.fetchone()['count']
+		cursor = self.db.cursor()
+		cursor.execute(count, where)
+		countValue = cursor.fetchone()['count']
 
 		self.logger.debug('Count tweets%s%s: %s.',
 			' by @' + screenName if screenName else '',
@@ -445,23 +442,23 @@ class Brain:
 
 	def users(self, table):
 
-		users = self.db.cursor()
-		users.execute(
+		cursor = self.db.cursor()
+		cursor.execute(
 			'SELECT id FROM {} WHERE state > 0'.format(table)
 		)
-		users = users.fetchall()
+		users = cursor.fetchall()
 		self.logger.debug('Fetched %s users from table "%s".', len(users), table)
 		return users
 
 
 	def hasUser(self, table, userId):
 
-		user = self.db.cursor()
-		user.execute(
+		cursor = self.db.cursor()
+		cursor.execute(
 			'SELECT id, screen_name FROM {} WHERE state > 0 AND id = ?'.format(table),
 			(str(userId),)
 		)
-		hasUser = user.fetchone() != None
+		hasUser = cursor.fetchone() != None
 		self.logger.debug(
 			'%s user "%s" in "%s".',
 			'Having' if hasUser else 'Not having', userId, table
@@ -501,30 +498,30 @@ class Brain:
 		self.logger.debug(
 			'Adding user "%s" to "%s"', user.screen_name, table
 		)
-		insert = self.db.cursor()
-		insert.execute(
+		cursor = self.db.cursor()
+		cursor.execute(
 			'INSERT OR REPLACE INTO {} (id,screen_name,state) VALUES (?,?,?)'.format(table),
 			(str(user.id), str(user.screen_name), state)
 		)
 		self.db.commit()
-		return insert.rowcount
+		return cursor.rowcount
 
 
 	def metrics(self):
 
-		counter = self.db.cursor()
+		cursor = self.db.cursor()
 
-		counter.execute('SELECT COUNT(id) AS count FROM tweets')
-		tweetCount = counter.fetchone()['count']
+		cursor.execute('SELECT COUNT(id) AS count FROM tweets')
+		tweetCount = cursor.fetchone()['count']
 
-		counter.execute('SELECT COUNT(id) AS count FROM followers')
-		followerCount = counter.fetchone()['count']
+		cursor.execute('SELECT COUNT(id) AS count FROM followers')
+		followerCount = cursor.fetchone()['count']
 
-		counter.execute('SELECT COUNT(id) AS count FROM friends')
-		friendCount = counter.fetchone()['count']
+		cursor.execute('SELECT COUNT(id) AS count FROM friends')
+		friendCount = cursor.fetchone()['count']
 
-		counter.execute('SELECT COUNT(name) AS count FROM config')
-		configCount = counter.fetchone()['count']
+		cursor.execute('SELECT COUNT(name) AS count FROM config')
+		configCount = cursor.fetchone()['count']
 
 		return '{} tweets, {} followers, {} friends, {} values'.format(
 			tweetCount, followerCount, friendCount, configCount
@@ -652,7 +649,6 @@ class Twitter:
 
 Please create file "{}" with contents:
 
-#!/usr/bin/env python3
 TWITTER_CONSUMER_KEY = 'Your Consumer Key'
 TWITTER_CONSUMER_SECRET = 'Your Consumer Secret'
 TWITTER_ACCESS_KEY = 'Your Access Key'
