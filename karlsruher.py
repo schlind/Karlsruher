@@ -870,8 +870,8 @@ class CommandLine:
 			exit(0)
 
 		if not SelfTest.isSuccessful():
+			SelfTest.runVerbose()
 			print("Selftest failed, aborting.")
-			print("Run again with -test -debug to see what fails.")
 			exit(1)
 
 		logging.basicConfig(
