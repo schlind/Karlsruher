@@ -514,17 +514,24 @@ class Brain:
 		cursor.execute('SELECT COUNT(id) AS count FROM tweets')
 		tweetCount = cursor.fetchone()['count']
 
-		cursor.execute('SELECT COUNT(id) AS count FROM followers')
+		cursor.execute('SELECT COUNT(id) AS count FROM followers WHERE state > 0')
 		followerCount = cursor.fetchone()['count']
 
-		cursor.execute('SELECT COUNT(id) AS count FROM friends')
+		cursor.execute('SELECT COUNT(id) AS count FROM followers WHERE state = 0')
+		orphanFollowerCount = cursor.fetchone()['count']
+
+		cursor.execute('SELECT COUNT(id) AS count FROM friends WHERE state > 0')
 		friendCount = cursor.fetchone()['count']
+
+		cursor.execute('SELECT COUNT(id) AS count FROM friends WHERE state = 0')
+		orphanFriendCount = cursor.fetchone()['count']
 
 		cursor.execute('SELECT COUNT(name) AS count FROM config')
 		configCount = cursor.fetchone()['count']
 
-		return '{} tweets, {} followers, {} friends, {} values'.format(
-			tweetCount, followerCount, friendCount, configCount
+		return '{} tweets, {}({}) followers, {}({}) friends, {} config values'.format(
+			tweetCount, followerCount, orphanFollowerCount,
+			friendCount, orphanFriendCount, configCount
 		)
 
 
@@ -632,10 +639,12 @@ class BrainTest(TestCase):
 	def test_brain_301_metrics_complete(self):
 		metrics = self.brain.metrics()
 		self.assertTrue('0' in metrics)
+		self.assertTrue('(' in metrics)
+		self.assertTrue(')' in metrics)
 		self.assertTrue('tweets' in metrics)
 		self.assertTrue('followers' in metrics)
 		self.assertTrue('friends' in metrics)
-		self.assertTrue('values' in metrics)
+		self.assertTrue('config values' in metrics)
 
 
 ##
