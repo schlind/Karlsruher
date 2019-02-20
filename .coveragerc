@@ -1,0 +1,10 @@
+[report]
+exclude_lines=
+	pragma: no cover
+	pragma: no py${PYTEST_PYMAJVER} cover
+
+omit=
+	karlsruher/__init__.py
+	karlsruher/__main__.py
+	karlsruher/authorize-access-token.py
+	karlsruher/Twitter.py

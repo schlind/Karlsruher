@@ -42,11 +42,11 @@ class Karlsruher:
 			self.advisors.append(str(user.id))
 		self.logger.debug('Having %s advisors.', len(self.advisors))
 
-		self.doReply = False
-		self.doRetweet = False
+		self.do_reply = False
+		self.do_retweet = False
 
 
-	def houseKeeping(self):
+	def house_keeping(self):
 
 		if not self.lock.acquire():
 			self.logger.debug('Housekeeping locked by "%s".', self.lock.path)
@@ -56,16 +56,16 @@ class Karlsruher:
 
 		watch = StopWatch()
 		try:
-			self.brain.importUsers('followers', self.twitter.followers)
-			self.brain.importUsers('friends', self.twitter.friends)
+			self.brain.import_users('followers', self.twitter.followers)
+			self.brain.import_users('friends', self.twitter.friends)
 		except:
 			self.logger.exception('Exception during housekeeping!')
-		self.logger.info('Housekeeping done, took %s.', watch.elapsedTime())
+		self.logger.info('Housekeeping done, took %s.', watch.elapsed())
 		self.lock.release()
 		return True
 
 
-	def readMentions(self):
+	def read_mentions(self):
 
 		if not self.lock.acquire():
 			self.logger.debug('Reading locked by "%s".', self.lock.path)
@@ -76,36 +76,36 @@ class Karlsruher:
 		watch = StopWatch()
 		for mention in self.twitter.mentions_timeline():
 			try:
-				self.readMention(mention)
+				self.read_mention(mention)
 			except:
 				self.logger.exception('Exception while reading mention.')
 
-		self.logger.info('Reading done, took %s.', watch.elapsedTime())
+		self.logger.info('Reading done, took %s.', watch.elapsed())
 		self.lock.release()
 		return True
 
 
-	def readMention(self, tweet):
+	def read_mention(self, tweet):
 
 		tweetLog = '@{}/{}'.format(tweet.user.screen_name, tweet.id)
 
-		if self.brain.hasTweet(tweet):
+		if self.brain.has_tweet(tweet):
 			self.logger.info('%s read before.', tweetLog)
 			return False
 
-		appliedAction = 'readMention'
+		appliedAction = 'read_mention'
 
-		for action in [ self.adviceAction, self.retweetAction ]:
+		for action in [ self.advice_action, self.retweet_action ]:
 			if action(tweet):
 				appliedAction = action.__name__
 				break
 
-		self.brain.addTweet(tweet, appliedAction)
+		self.brain.add_tweet(tweet, appliedAction)
 		self.logger.info('%s applied %s.', tweetLog, appliedAction)
 		return True
 
 
-	def adviceAction(self, tweet):
+	def advice_action(self, tweet):
 
 		if not str(tweet.user.id) in self.advisors:
 			self.logger.debug('@%s is not an advisor.', tweet.user.screen_name)
@@ -123,7 +123,7 @@ class Karlsruher:
 			self.logger.info(
 				'Taking advice from @%s: %s', tweet.user.screen_name, advice
 			)
-			self.brain.setValue('retweet.disabled', True)
+			self.brain.set_value('retweet.disabled', True)
 			self.reply(tweet, 'Ok @{}, ich retweete nicht mehr... (Automatische Antwort)')
 			return True ## took advice
 
@@ -131,7 +131,7 @@ class Karlsruher:
 			self.logger.info(
 				'Taking advice from @%s: %s', tweet.user.screen_name, advice
 			)
-			self.brain.setValue('retweet.disabled', None)
+			self.brain.set_value('retweet.disabled', None)
 			self.reply(tweet, 'Ok @{}, ich retweete wieder... (Automatische Antwort)')
 			return True ## took advice
 
@@ -142,18 +142,18 @@ class Karlsruher:
 
 		status = status.format(tweet.user.screen_name)
 		self.logger.debug(
-			'%s: "%s"', 'Reply' if self.doReply else 'Would reply', status
+			'%s: "%s"', 'Reply' if self.do_reply else 'Would reply', status
 		)
-		if self.doReply:
+		if self.do_reply:
 			self.twitter.update_status(
 				in_reply_to_status_id = tweet.id,
 				status = status.format(tweet.user.screen_name)
 			)
 
 
-	def retweetAction(self, tweet):
+	def retweet_action(self, tweet):
 
-		if self.brain.getValue('retweet.disabled') == True:
+		if self.brain.get_value('retweet.disabled') == True:
 			self.logger.debug('I am sleeping and not retweeting.')
 			return False ## no retweets
 
@@ -169,16 +169,16 @@ class Karlsruher:
 			self.logger.debug('@%s reply, no retweet.', tweet.user.screen_name)
 			return False ## not retweeting replies
 
-		if not self.brain.hasUser('followers', tweet.user.id):
+		if not self.brain.has_user('followers', tweet.user.id):
 			self.logger.debug('@%s not following, no retweet.', tweet.user.screen_name)
 			return False ## not retweeting non-followers
 
 		self.logger.debug('%s: @%s/%s.',
-			'Retweet' if self.doRetweet else 'Would retweet',
+			'Retweet' if self.do_retweet else 'Would retweet',
 			tweet.user.screen_name, tweet.id
 		)
 
-		if self.doRetweet:
+		if self.do_retweet:
 			self.twitter.retweet(tweet)
 
 		return True ## logically retweeted
@@ -217,7 +217,7 @@ class KarlsruherTest(TestCase):
 		self.bot.lock.release()
 
 	def test_001_not_locked(self):
-		self.assertFalse(self.bot.lock.isPresent())
+		self.assertFalse(self.bot.lock.is_present())
 
 	def test_101_init_can_get_me(self):
 		self.assertEqual(self.bot.me.screen_name, self.me.screen_name)
@@ -231,100 +231,100 @@ class KarlsruherTest(TestCase):
 
 
 	def test_201_empty_brain(self):
-		self.assertEqual(0, self.bot.brain.countTweets())
+		self.assertEqual(0, self.bot.brain.count_tweets())
 		self.assertEqual(0, len(self.bot.brain.users('followers')))
 		self.assertEqual(0, len(self.bot.brain.users('friends')))
-		self.assertIsNone(self.bot.brain.getValue('retweet.disabled'))
+		self.assertIsNone(self.bot.brain.get_value('retweet.disabled'))
 
 
 	def test_302_housekeeping(self):
-		self.bot.houseKeeping()
+		self.bot.house_keeping()
 		self.assertEqual(2, len(self.bot.brain.users('followers')))
 		self.assertEqual(1, len(self.bot.brain.users('friends')))
 
 
 	def test_401_mention_can_read(self):
-		self.assertTrue(self.bot.readMention(self.tweet))
+		self.assertTrue(self.bot.read_mention(self.tweet))
 
 	def test_402_mention_can_read_only_once(self):
-		self.assertTrue(self.bot.readMention(self.tweet))
-		self.assertFalse(self.bot.readMention(self.tweet))
+		self.assertTrue(self.bot.read_mention(self.tweet))
+		self.assertFalse(self.bot.read_mention(self.tweet))
 
 
 	def test_501_advice_can_ignore_from_non_advisors(self):
 		self.tweet.text = '@{}! gEh scHlafen!!!'.format(self.me.screen_name)
-		self.assertFalse(self.bot.adviceAction(self.tweet))
+		self.assertFalse(self.bot.advice_action(self.tweet))
 
 	def test_502_advice_can_accept_sleep(self):
 		self.tweet.text = '@{}! gEh scHlafen!!!'.format(self.me.screen_name)
 		self.tweet.user = self.advisor
-		self.assertTrue(self.bot.adviceAction(self.tweet))
-		self.assertTrue(self.bot.brain.getValue('retweet.disabled'))
+		self.assertTrue(self.bot.advice_action(self.tweet))
+		self.assertTrue(self.bot.brain.get_value('retweet.disabled'))
 
 	def test_503_advice_can_accept_wakeup(self):
 		self.tweet.text = '@{}! waCh auf!!!'.format(self.me.screen_name)
 		self.tweet.user = self.advisor
-		self.bot.brain.setValue('retweet.disabled', True)
-		self.assertTrue(self.bot.adviceAction(self.tweet))
-		self.assertIsNone(self.bot.brain.getValue('retweet.disabled'))
+		self.bot.brain.set_value('retweet.disabled', True)
+		self.assertTrue(self.bot.advice_action(self.tweet))
+		self.assertIsNone(self.bot.brain.get_value('retweet.disabled'))
 
 
 	def test_601_retweet_not_during_sleep(self):
-		self.bot.houseKeeping()
-		self.bot.doRetweet = True
+		self.bot.house_keeping()
+		self.bot.do_retweet = True
 		self.tweet.user = self.follower
-		self.bot.brain.setValue('retweet.disabled', True)
-		self.assertFalse(self.bot.retweetAction(self.tweet))
+		self.bot.brain.set_value('retweet.disabled', True)
+		self.assertFalse(self.bot.retweet_action(self.tweet))
 		self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
 	def test_602_retweet_not_myself(self):
-		self.bot.houseKeeping()
-		self.bot.doRetweet = True
+		self.bot.house_keeping()
+		self.bot.do_retweet = True
 		self.tweet.user = self.me
-		self.assertFalse(self.bot.retweetAction(self.tweet))
+		self.assertFalse(self.bot.retweet_action(self.tweet))
 		self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
 	def test_603_retweet_not_protected(self):
-		self.bot.houseKeeping()
-		self.bot.doRetweet = True
+		self.bot.house_keeping()
+		self.bot.do_retweet = True
 		for user in [
 			self.me, self.advisor, self.follower, self.friend, self.unknown
 		]:
 			self.tweet.user = user
 			self.tweet.user.protected = True
-			self.assertFalse(self.bot.retweetAction(self.tweet))
+			self.assertFalse(self.bot.retweet_action(self.tweet))
 		self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
 	def test_604_retweet_not_replies(self):
-		self.bot.houseKeeping()
-		self.bot.doRetweet = True
+		self.bot.house_keeping()
+		self.bot.do_retweet = True
 		self.tweet.in_reply_to_status_id = 7500
 		for user in [
 			self.me, self.advisor, self.follower, self.friend, self.unknown
 		]:
 			self.tweet.user = user
-			self.assertFalse(self.bot.retweetAction(self.tweet))
+			self.assertFalse(self.bot.retweet_action(self.tweet))
 		self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
 	def test_604_retweet_not_non_followers(self):
-		self.bot.houseKeeping()
-		self.bot.doRetweet = True
-		self.assertFalse(self.bot.retweetAction(self.tweet))
+		self.bot.house_keeping()
+		self.bot.do_retweet = True
+		self.assertFalse(self.bot.retweet_action(self.tweet))
 		self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
 	def test_605_retweet_follower(self):
-		self.bot.houseKeeping()
-		self.bot.doRetweet = True
+		self.bot.house_keeping()
+		self.bot.do_retweet = True
 		self.tweet.user = self.follower
-		self.assertTrue(self.bot.retweetAction(self.tweet))
+		self.assertTrue(self.bot.retweet_action(self.tweet))
 		self.assertEqual(1, self.bot.twitter.retweet.call_count)
 
 	def test_606_retweet_not_when_disabled(self):
-		self.bot.houseKeeping()
-		self.bot.doRetweet = False
+		self.bot.house_keeping()
+		self.bot.do_retweet = False
 		for user in [self.follower, self.advisor ]:
 			self.tweet.user = user
-			self.assertTrue(self.bot.retweetAction(self.tweet))
+			self.assertTrue(self.bot.retweet_action(self.tweet))
 		self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
 
@@ -344,16 +344,16 @@ class Brain:
 		self.logger = logging.getLogger(self.__class__.__name__)
 
 		self.db = sqlite3.connect(database)
-		self.db.row_factory = sqlite3.Row
+		self.connection.row_factory = sqlite3.Row
 
 		for createTable in self.schema:
-			self.db.cursor().execute(createTable)
-			self.db.commit()
+			self.connection.cursor().execute(createTable)
+			self.connection.commit()
 
 
-	def setValue(self, name, value = None):
+	def set_value(self, name, value = None):
 
-		cursor = self.db.cursor()
+		cursor = self.connection.cursor()
 		if value == None:
 			self.logger.debug('Unsetting value "%s"', name)
 			cursor.execute('DELETE FROM config WHERE name = ?', (str(name),))
@@ -363,15 +363,15 @@ class Brain:
 				'INSERT OR REPLACE INTO config (name,value) VALUES (?,?)',
 				(str(name), str(value))
 			)
-		self.db.commit()
+		self.connection.commit()
 		return cursor.rowcount
 
 
-	def getValue(self, name, default = None):
+	def get_value(self, name, default = None):
 
 		self.logger.debug('Getting value "%s"', name)
 
-		cursor = self.db.cursor()
+		cursor = self.connection.cursor()
 		cursor.execute('SELECT value FROM config WHERE name = ?', (str(name),))
 		value = cursor.fetchone()
 
@@ -388,9 +388,9 @@ class Brain:
 		return default
 
 
-	def hasTweet(self, tweet):
+	def has_tweet(self, tweet):
 
-		cursor = self.db.cursor()
+		cursor = self.connection.cursor()
 		cursor.execute('SELECT id FROM tweets WHERE id = ?', (str(tweet.id),))
 		haveTweet = cursor.fetchone() != None
 		self.logger.debug('%s tweet "%s".',
@@ -400,39 +400,39 @@ class Brain:
 		return haveTweet
 
 
-	def addTweet(self, tweet, reason):
+	def add_tweet(self, tweet, reason):
 
 		self.logger.debug('Adding tweet "%s".', tweet.id)
 
-		cursor = self.db.cursor()
+		cursor = self.connection.cursor()
 		cursor.execute(
 			'INSERT OR IGNORE INTO tweets (id,user_screen_name,reason) VALUES (?,?,?)',
 			(str(tweet.id), str(tweet.user.screen_name), str(reason))
 		)
-		self.db.commit()
+		self.connection.commit()
 		return cursor.rowcount
 
 
-	def countTweets(self, screenName = None, reason = None):
+	def count_tweets(self, user_screen_name = None, reason = None):
 
 		count = 'SELECT COUNT(id) AS count FROM tweets'
 		where = ()
-		if screenName and reason:
+		if user_screen_name and reason:
 			count += ' WHERE user_screen_name = ? AND reason = ?'
-			where = (str(screenName), str(reason))
-		elif screenName:
+			where = (str(user_screen_name), str(reason))
+		elif user_screen_name:
 			count += ' WHERE user_screen_name = ?'
-			where = (str(screenName),)
+			where = (str(user_screen_name),)
 		elif reason:
 			count += ' WHERE reason = ?'
 			where = (str(reason),)
 
-		cursor = self.db.cursor()
+		cursor = self.connection.cursor()
 		cursor.execute(count, where)
 		countValue = cursor.fetchone()['count']
 
 		self.logger.debug('Count tweets%s%s: %s.',
-			' by @' + screenName if screenName else '',
+			' by @' + user_screen_name if user_screen_name else '',
 			', reason=' + reason if reason else '',
 			countValue
 		)
@@ -442,7 +442,7 @@ class Brain:
 
 	def users(self, table):
 
-		cursor = self.db.cursor()
+		cursor = self.connection.cursor()
 		cursor.execute(
 			'SELECT id FROM {} WHERE state > 0'.format(table)
 		)
@@ -451,41 +451,41 @@ class Brain:
 		return users
 
 
-	def hasUser(self, table, userId):
+	def has_user(self, table, user_id):
 
-		cursor = self.db.cursor()
+		cursor = self.connection.cursor()
 		cursor.execute(
 			'SELECT id, screen_name FROM {} WHERE state > 0 AND id = ?'.format(table),
-			(str(userId),)
+			(str(user_id),)
 		)
-		hasUser = cursor.fetchone() != None
+		has_user = cursor.fetchone() != None
 		self.logger.debug(
 			'%s user "%s" in "%s".',
-			'Having' if hasUser else 'Not having', userId, table
+			'Having' if has_user else 'Not having', user_id, table
 		)
-		return hasUser
+		return has_user
 
 
-	def importUsers(self, table, source):
+	def import_users(self, table, source):
 
-		limbo = self.db.cursor()
+		limbo = self.connection.cursor()
 		limbo.execute('UPDATE {} SET state = 2 WHERE state = 1'.format(table))
-		self.db.commit()
+		self.connection.commit()
 
 		if callable(source):
 			for user in source():
-				self.addUser(table, user, 3)
+				self.add_user(table, user, 3)
 		else:
 			for user in source:
-				self.addUser(table, user, 3)
+				self.add_user(table, user, 3)
 
-		nirvana = self.db.cursor()
+		nirvana = self.connection.cursor()
 		nirvana.execute('UPDATE {} SET state = 0 WHERE state = 2'.format(table))
-		self.db.commit()
+		self.connection.commit()
 
-		imported = self.db.cursor()
+		imported = self.connection.cursor()
 		imported.execute('UPDATE {} SET state = 1 WHERE state = 3'.format(table))
-		self.db.commit()
+		self.connection.commit()
 
 		self.logger.info(
 			'Updated %s %s, %s imported, %s lost.',
@@ -493,23 +493,23 @@ class Brain:
 		)
 
 
-	def addUser(self, table, user, state = 1):
+	def add_user(self, table, user, state = 1):
 
 		self.logger.debug(
 			'Adding user "%s" to "%s"', user.screen_name, table
 		)
-		cursor = self.db.cursor()
+		cursor = self.connection.cursor()
 		cursor.execute(
 			'INSERT OR REPLACE INTO {} (id,screen_name,state) VALUES (?,?,?)'.format(table),
 			(str(user.id), str(user.screen_name), state)
 		)
-		self.db.commit()
+		self.connection.commit()
 		return cursor.rowcount
 
 
 	def metrics(self):
 
-		cursor = self.db.cursor()
+		cursor = self.connection.cursor()
 
 		cursor.execute('SELECT COUNT(id) AS count FROM tweets')
 		tweetCount = cursor.fetchone()['count']
@@ -546,72 +546,72 @@ class BrainTest(TestCase):
 		self.brain = Brain(':memory:')
 
 	def test_brain_001_can_get_default_value(self):
-		self.assertEqual('default', self.brain.getValue('test', 'default'))
+		self.assertEqual('default', self.brain.get_value('test', 'default'))
 
 	def test_brain_002_can_set_get_string_value(self):
-		self.brain.setValue('test', 'string')
-		self.assertEqual('string', self.brain.getValue('test'))
+		self.brain.set_value('test', 'string')
+		self.assertEqual('string', self.brain.get_value('test'))
 
 	def test_brain_003_can_set_get_true(self):
-		self.brain.setValue('test', True)
-		self.assertTrue(self.brain.getValue('test'))
+		self.brain.set_value('test', True)
+		self.assertTrue(self.brain.get_value('test'))
 
 	def test_brain_004_can_set_get_false(self):
-		self.brain.setValue('test', False)
-		self.assertFalse(self.brain.getValue('test'))
+		self.brain.set_value('test', False)
+		self.assertFalse(self.brain.get_value('test'))
 
 	def test_brain_005_can_set_get_none(self):
-		self.brain.setValue('test')
-		self.assertIsNone(self.brain.getValue('test'))
-		self.assertFalse(self.brain.getValue('test'))
+		self.brain.set_value('test')
+		self.assertIsNone(self.brain.get_value('test'))
+		self.assertFalse(self.brain.get_value('test'))
 
 
 	def test_brain_101_can_count_tweets_empty(self):
-		self.assertEqual(0, self.brain.countTweets())
+		self.assertEqual(0, self.brain.count_tweets())
 
 	def test_brain_102_can_add_has_tweet(self):
 		tweet = mock.Mock(id = 111, user = self.user1)
-		self.assertFalse(self.brain.hasTweet(tweet))
-		self.assertEqual(1, self.brain.addTweet(tweet, 'test'))
-		self.assertTrue(self.brain.hasTweet(tweet))
+		self.assertFalse(self.brain.has_tweet(tweet))
+		self.assertEqual(1, self.brain.add_tweet(tweet, 'test'))
+		self.assertTrue(self.brain.has_tweet(tweet))
 
 	def test_brain_103_not_updating_tweets(self):
 		tweet = mock.Mock(id = 111, user = self.user1)
-		self.assertFalse(self.brain.hasTweet(tweet))
-		self.assertEqual(1, self.brain.addTweet(tweet, 'test'))
-		self.assertEqual(0, self.brain.addTweet(tweet, 'test'))
+		self.assertFalse(self.brain.has_tweet(tweet))
+		self.assertEqual(1, self.brain.add_tweet(tweet, 'test'))
+		self.assertEqual(0, self.brain.add_tweet(tweet, 'test'))
 
 	def test_brain_104_can_count_tweets(self):
-		self.brain.addTweet(mock.Mock(id = 111, user = self.user1), 'test')
-		self.brain.addTweet(mock.Mock(id = 222, user = self.user1), 'test')
-		self.assertEqual(2, self.brain.countTweets())
-		self.brain.addTweet(mock.Mock(id = 333, user = self.user2), 'test')
-		self.assertEqual(3, self.brain.countTweets())
+		self.brain.add_tweet(mock.Mock(id = 111, user = self.user1), 'test')
+		self.brain.add_tweet(mock.Mock(id = 222, user = self.user1), 'test')
+		self.assertEqual(2, self.brain.count_tweets())
+		self.brain.add_tweet(mock.Mock(id = 333, user = self.user2), 'test')
+		self.assertEqual(3, self.brain.count_tweets())
 
 	def test_brain_105_can_count_tweets_by_reason(self):
-		self.brain.addTweet(mock.Mock(id = 111, user = self.user1), 'A')
-		self.brain.addTweet(mock.Mock(id = 222, user = self.user1), 'B')
-		self.brain.addTweet(mock.Mock(id = 333, user = self.user2), 'A')
-		self.assertEqual(2, self.brain.countTweets(reason = 'A'))
-		self.assertEqual(1, self.brain.countTweets(reason = 'B'))
-		self.assertEqual(0, self.brain.countTweets(reason = '?'))
+		self.brain.add_tweet(mock.Mock(id = 111, user = self.user1), 'A')
+		self.brain.add_tweet(mock.Mock(id = 222, user = self.user1), 'B')
+		self.brain.add_tweet(mock.Mock(id = 333, user = self.user2), 'A')
+		self.assertEqual(2, self.brain.count_tweets(reason = 'A'))
+		self.assertEqual(1, self.brain.count_tweets(reason = 'B'))
+		self.assertEqual(0, self.brain.count_tweets(reason = '?'))
 
 	def test_brain_106_can_count_tweets_by_screen_name(self):
-		self.brain.addTweet(mock.Mock(id = 111, user = self.user1), 'A')
-		self.brain.addTweet(mock.Mock(id = 222, user = self.user1), 'B')
-		self.brain.addTweet(mock.Mock(id = 333, user = self.user2), 'A')
-		self.assertEqual(2, self.brain.countTweets(screenName = self.user1.screen_name))
-		self.assertEqual(1, self.brain.countTweets(screenName = self.user2.screen_name))
-		self.assertEqual(0, self.brain.countTweets(screenName = '?'))
+		self.brain.add_tweet(mock.Mock(id = 111, user = self.user1), 'A')
+		self.brain.add_tweet(mock.Mock(id = 222, user = self.user1), 'B')
+		self.brain.add_tweet(mock.Mock(id = 333, user = self.user2), 'A')
+		self.assertEqual(2, self.brain.count_tweets(user_screen_name = self.user1.screen_name))
+		self.assertEqual(1, self.brain.count_tweets(user_screen_name = self.user2.screen_name))
+		self.assertEqual(0, self.brain.count_tweets(user_screen_name = '?'))
 
 	def test_brain_107_can_count_tweets_by_reson_and_screen_name(self):
-		self.brain.addTweet(mock.Mock(id = 111, user = self.user1), 'A')
-		self.brain.addTweet(mock.Mock(id = 222, user = self.user1), 'B')
-		self.brain.addTweet(mock.Mock(id = 333, user = self.user2), 'A')
-		self.assertEqual(1, self.brain.countTweets(reason = 'A', screenName = self.user1.screen_name))
-		self.assertEqual(1, self.brain.countTweets(reason = 'B', screenName = self.user1.screen_name))
-		self.assertEqual(1, self.brain.countTweets(reason = 'A', screenName = self.user2.screen_name))
-		self.assertEqual(0, self.brain.countTweets(reason = '?', screenName = '?'))
+		self.brain.add_tweet(mock.Mock(id = 111, user = self.user1), 'A')
+		self.brain.add_tweet(mock.Mock(id = 222, user = self.user1), 'B')
+		self.brain.add_tweet(mock.Mock(id = 333, user = self.user2), 'A')
+		self.assertEqual(1, self.brain.count_tweets(reason = 'A', user_screen_name = self.user1.screen_name))
+		self.assertEqual(1, self.brain.count_tweets(reason = 'B', user_screen_name = self.user1.screen_name))
+		self.assertEqual(1, self.brain.count_tweets(reason = 'A', user_screen_name = self.user2.screen_name))
+		self.assertEqual(0, self.brain.count_tweets(reason = '?', user_screen_name = '?'))
 
 
 	def __data_for_test_201(self):
@@ -620,19 +620,19 @@ class BrainTest(TestCase):
 
 	def test_brain_201_can_add_has_user(self):
 		for table in ['followers', 'friends']:
-			self.assertFalse(self.brain.hasUser(table, self.user3.id))
-			self.assertEqual(1, self.brain.addUser(table, self.user3))
-			self.assertTrue(self.brain.hasUser(table, self.user3.id))
+			self.assertFalse(self.brain.has_user(table, self.user3.id))
+			self.assertEqual(1, self.brain.add_user(table, self.user3))
+			self.assertTrue(self.brain.has_user(table, self.user3.id))
 
 	def test_brain_201_can_handle_users_stream(self):
 		for table in ['followers', 'friends']:
-			self.brain.importUsers(table , self.__data_for_test_201)
+			self.brain.import_users(table , self.__data_for_test_201)
 			self.assertEqual(3, len(self.brain.users(table)))
 
 	def test_brain_201_can_handle_users_array(self):
 		for table in ['followers', 'friends']:
 			data = self.__data_for_test_201()
-			self.brain.importUsers(table , data)
+			self.brain.import_users(table , data)
 			self.assertEqual(3, len(self.brain.users(table)))
 
 
@@ -722,7 +722,7 @@ class StopWatch:
 	def __init__(self):
 		self.start = datetime.now()
 
-	def elapsedTime(self):
+	def elapsed(self):
 		return datetime.now() - self.start
 
 
@@ -731,7 +731,7 @@ class StopWatch:
 class StopWatchTest(TestCase):
 
 	def test_watch_001_can_read_elapsed_time(self):
-		self.assertEqual('0:00:00.00' , str(StopWatch().elapsedTime())[:10])
+		self.assertEqual('0:00:00.00' , str(StopWatch().elapsed())[:10])
 
 
 ##
@@ -741,17 +741,17 @@ class Lock:
 	def __init__(self, path):
 		self.path = path
 
-	def isPresent(self):
+	def is_present(self):
 		return path.isfile(self.path)
 
 	def acquire(self):
-		if self.isPresent():
+		if self.is_present():
 			return False
 		open(self.path, 'a').close()
-		return self.isPresent()
+		return self.is_present()
 
 	def release(self):
-		if self.isPresent():
+		if self.is_present():
 			remove(self.path)
 
 
@@ -766,11 +766,11 @@ class LockTest(TestCase):
 		self.lock.release()
 
 	def test_lock_001_can_indicate(self):
-		self.assertFalse(self.lock.isPresent())
+		self.assertFalse(self.lock.is_present())
 
 	def test_lock_002_can_acquire_and_indicate(self):
 		self.assertTrue(self.lock.acquire())
-		self.assertTrue(self.lock.isPresent())
+		self.assertTrue(self.lock.is_present())
 
 	def test_lock_003_can_acquire_only_once(self):
 		self.assertTrue(self.lock.acquire())
@@ -778,7 +778,7 @@ class LockTest(TestCase):
 
 	def test_lock_004_can_release(self):
 		self.lock.release()
-		self.assertFalse(self.lock.isPresent())
+		self.assertFalse(self.lock.is_present())
 
 
 ##
@@ -881,14 +881,14 @@ class CommandLine:
 		)
 
 		if '-housekeeping' in argv:
-			Karlsruher(home).houseKeeping()
+			Karlsruher(home).house_keeping()
 			exit(0)
 
 		if '-read' in argv or '-talk' in argv:
 			karlsruher = Karlsruher(home)
-			karlsruher.doReply = '-reply' in argv or '-talk' in argv
-			karlsruher.doRetweet = '-retweet' in argv or '-talk' in argv
-			karlsruher.readMentions()
+			karlsruher.do_reply = '-reply' in argv or '-talk' in argv
+			karlsruher.do_retweet = '-retweet' in argv or '-talk' in argv
+			karlsruher.read_mentions()
 			exit(0)
 
 		print(CommandLine.__doc__)

@@ -15,6 +15,19 @@ A Karlsruher Retweet Bot is a robot on Twitter that reads and retweets tweets th
 
 *Disclaimer: It's my first Python project, feedback welcome!*
 
+
+## Run
+
+	`./homedir/run.py`
+
+
+	`python3 -m karlsruher`
+
+	`python3 -m unittest`
+
+	`python3 -m pytest tests --cov=karlsruher --cov-report=html --cov-branch`
+
+
 ## Essential files
 
 ### credentials.py.example & credentials.py
