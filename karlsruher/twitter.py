@@ -1,5 +1,7 @@
-## Karlsruher Retweet Bot
-## https://github.com/schlind/Karlsruher
+'''
+@Karlsruher Retweet Robot
+https://github.com/schlind/Karlsruher
+'''
 
 import os
 import tweepy

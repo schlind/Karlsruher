@@ -1,5 +1,8 @@
-## Karlsruher Retweet Bot
-## https://github.com/schlind/Karlsruher
+'''
+@Karlsruher Retweet Robot
+https://github.com/schlind/Karlsruher
+'''
+
 from .common_test import LockTest
 from .common_test import StopWatchTest
 from .karlsruher_test import BrainTest

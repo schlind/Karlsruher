@@ -1,4 +1,8 @@
-'''main'''
+'''
+@Karlsruher Retweet Robot
+https://github.com/schlind/Karlsruher
+'''
+
 from .karlsruher import CommandLine
 
 def main():

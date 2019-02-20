@@ -6,5 +6,5 @@ exclude_lines=
 omit=
 	karlsruher/__init__.py
 	karlsruher/__main__.py
-	karlsruher/authorize-access-token.py
-	karlsruher/Twitter.py
+	karlsruher/authorize_access_token.py
+	karlsruher/twitter.py

@@ -1,5 +1,7 @@
-## Karlsruher Retweet Bot
-## https://github.com/schlind/Karlsruher
+'''
+@Karlsruher Retweet Robot
+https://github.com/schlind/Karlsruher
+'''
 
 import logging
 import os
@@ -19,7 +21,7 @@ class Karlsruher:
     lock = None
     twitter = None
 
-
+    # pylint: disable=too-many-instance-attributes
     def __init__(self, home, brain=None, twitter=None):
 
         if not os.path.isdir(home):

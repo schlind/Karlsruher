@@ -1,5 +1,7 @@
-## Karlsruher Retweet Bot
-## https://github.com/schlind/Karlsruher
+'''
+@Karlsruher Retweet Robot
+https://github.com/schlind/Karlsruher
+'''
 
 from sys import version_info as python_version
 assert python_version >= (3,)

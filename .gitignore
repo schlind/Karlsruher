@@ -11,6 +11,7 @@ localhome
 *.lock.*
 *.log
 *.py[cod]
+.pytest_cache
 __pycache__/
 *.so
 *~

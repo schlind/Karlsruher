@@ -1,0 +1,13 @@
+[MESSAGES CONTROL]
+disable=
+    attribute-defined-outside-init,
+    invalid-name,
+    missing-docstring,
+    protected-access,
+    too-few-public-methods,
+    line-too-long,
+    too-many-instance-attributes
+
+[DESIGN]
+    max-attributes=10
+    min-public-methods=1

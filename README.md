@@ -3,7 +3,7 @@
 
 ## Executor's summary
 
-	`# ./run.py`
+	`# python3 -m karlsruher`
 
 ## Abstract
 A Karlsruher Retweet Bot is a robot on Twitter that reads and retweets tweets that mention it's name.
@@ -18,49 +18,12 @@ A Karlsruher Retweet Bot is a robot on Twitter that reads and retweets tweets th
 
 ## Run
 
-	`./homedir/run.py`
-
-
 	`python3 -m karlsruher`
 
-	`python3 -m unittest`
+	`python3 -m unittest -v`
 
 	`python3 -m pytest tests --cov=karlsruher --cov-report=html --cov-branch`
 
-
-## Essential files
-
-### credentials.py.example & credentials.py
-Must contain valid tokens for the connected Twitter account.
-[API-Keys](https://developer.twitter.com)
-
-	`# cp credentials.py.example credentials.py`
-
-### karlsruher.py
-Module library, classes only.
-
-#### class Karlsruher & KarlsruherTest
-Retweet Bot implementation and tests.
-
-#### class Brain & BrainTest
-Persistence implementation and tests.
-
-#### class Twitter
-Twitter API as required, can be mocked for tests.
-
-#### class CommandLine
-Command line interface to run the bot.
-
-#### Internal auxiliary classes, separation of concerns
-* StopWatch to measure runtime
-* Lock + LockTest to implement file based locks
-* SelfTest to provide and run the TestSuite
-
-
-### run.py
-Runs the bot.
-
-	`# run.py`
 
 ### Runtime, Database & lock files
 Depending on the bot's name:
