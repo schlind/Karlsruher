@@ -7,6 +7,7 @@ dist/
 *.egg-info/
 *.egg
 htmlcov
+localhome
 *.lock.*
 *.log
 *.py[cod]
