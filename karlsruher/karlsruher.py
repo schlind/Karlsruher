@@ -38,21 +38,30 @@ class Karlsruher:
 
         self.logger = logging.getLogger(self.__class__.__name__)
 
+        ## Connect Twitter
+        ## Prepending home to path supports import
+        ## of file credentials.py in class Twitter
+        sys.path.insert(0, home)
         credentials = '{}/credentials.py'.format(home)
+        self.logger.debug('Connecting to twitter "%s".', credentials)
         self.twitter = twitter if twitter else Twitter(credentials)
         self.screen_name = self.twitter.me().screen_name
         self.logger.info('Hello, my name is @%s.', self.screen_name)
 
-        database = '{}/{}.db'.format(home, self.screen_name.lower())
-        self.brain = brain if brain else Brain(database)
-        self.logger.info('Metrics: %s.', self.brain.metrics())
-
+        ## Fetch advisors from Twitter
         self.advisors = []
         for user in self.twitter.list_advisors():
             self.advisors.append(str(user.id))
         self.logger.info('Having %s advisors.', len(self.advisors))
 
-        self.lock = Lock('{}/.lock.{}'.format(home, self.screen_name.lower()))
+        ## Defibrillate Brain class
+        database = '{}/{}.db'.format(home, self.screen_name.lower())
+        self.brain = brain if brain else Brain(database)
+        self.logger.info('Metrics: %s.', self.brain.metrics())
+
+        ## Prepare a lock file
+        lockfile = '{}/.lock.{}'.format(home, self.screen_name.lower())
+        self.lock = Lock(lockfile)
 
 
     def house_keeping(self):
@@ -73,8 +82,10 @@ class Karlsruher:
         self.logger.info('Housekeeping! This may take a while...')
 
         watch = StopWatch()
+
         self.brain.import_users('followers', self.twitter.followers)
         self.brain.import_users('friends', self.twitter.friends)
+
         self.logger.info('Housekeeping done, took %s.', watch.elapsed())
         self.lock.release()
         return True
