@@ -3,13 +3,16 @@
 https://github.com/schlind/Karlsruher
 '''
 
-import contextlib, io, sys, tempfile
+import contextlib
+import io
+import sys
+import tempfile
+from unittest import mock
+from unittest import TestCase
+
 import karlsruher
-from unittest import mock, TestCase
 
 
-##
-##
 class KarlsruherTest(TestCase):
 
     def setUp(self):
@@ -242,9 +245,6 @@ class KarlsruherTest(TestCase):
 
 
 
-
-##
-##
 class BrainTest(TestCase):
 
     def setUp(self):
@@ -356,18 +356,17 @@ class BrainTest(TestCase):
 
 
 
-##
-##
+
 class CommandLineTest(TestCase):
 
     @contextlib.contextmanager
-    def captured_output(self):
-        old_out, old_err = sys.stdout, sys.stderr
+    def managed_std_streams(self):
+        realout, realerr = sys.stdout, sys.stderr
         try:
             sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
             yield sys.stdout, sys.stderr
         finally:
-            sys.stdout, sys.stderr = old_out, old_err
+            sys.stdout, sys.stderr = realout, realerr
 
     def setUp(self):
         pass
@@ -375,103 +374,107 @@ class CommandLineTest(TestCase):
 
     def test_000_run_show_help(self):
         sys.argv = []
-        with self.captured_output() as (out, err):
+        with self.managed_std_streams() as (out, err):
             self.assertEqual(0, karlsruher.CommandLine.run())
-        self.assertEqual('@Karlsruher', out.getvalue().strip()[:11])
+
+        console = out.getvalue().strip()
+        self.assertTrue(console.startswith('@Karlsruher'), console)
 
     def test_001_run_show_help(self):
         sys.argv = ['-help']
-        with self.captured_output() as (out, err):
+        with self.managed_std_streams() as (out, err):
             self.assertEqual(0, karlsruher.CommandLine.run())
-        self.assertEqual('@Karlsruher', out.getvalue().strip()[:11])
+        console = out.getvalue().strip()
+        self.assertTrue(console.startswith('@Karlsruher'), console)
 
 
     def test_101_run_housekeeping_no_home(self):
         sys.argv = ['-housekeeping']
-        with self.captured_output() as (out, err):
+        with self.managed_std_streams() as (out, err):
             self.assertEqual(1, karlsruher.CommandLine.run())
-        #self.assertEqual('No home directory', out.getvalue().strip()[:17])
-        self.assertTrue(out.getvalue().strip().startswith('No home directory'))
+        console = out.getvalue().strip()
+        self.assertTrue(console.startswith('Please specify'), console)
 
     def test_102_run_read_no_home(self):
         sys.argv = ['-read']
-        with self.captured_output() as (out, err):
+        with self.managed_std_streams() as (out, err):
             self.assertEqual(1, karlsruher.CommandLine.run())
-        #self.assertEqual('No home directory', out.getvalue().strip()[:17])
-        self.assertTrue(out.getvalue().strip().startswith('No home directory'))
+        console = out.getvalue().strip()
+        self.assertTrue(console.startswith('Please specify'), console)
 
     def test_103_run_talk_no_home(self):
         sys.argv = ['-talk']
-        with self.captured_output() as (out, err):
+        with self.managed_std_streams() as (out, err):
             self.assertEqual(1, karlsruher.CommandLine.run())
-        #self.assertEqual('No home directory', out.getvalue().strip()[:17])
-        self.assertTrue(out.getvalue().strip().startswith('No home directory'))
+        console = out.getvalue().strip()
+        self.assertTrue(console.startswith('Please specify'), console)
 
 
     def test_201_run_housekeeping_nonexisting_home(self):
         sys.argv = ['-housekeeping', '--home=/does/not/exist']
-        with self.captured_output() as (out, err):
+        with self.managed_std_streams() as (out, err):
             self.assertEqual(1, karlsruher.CommandLine.run())
-        #self.assertEqual('Specified home', out.getvalue().strip()[:14])
-        self.assertTrue(out.getvalue().strip().startswith('Specified home'))
+        console = out.getvalue().strip()
+        self.assertTrue(console.startswith('Specified home'), console)
 
     def test_202_run_read_nonexisting_home(self):
         sys.argv = ['-read', '--home=/does/not/exist']
-        with self.captured_output() as (out, err):
+        with self.managed_std_streams() as (out, err):
             self.assertEqual(1, karlsruher.CommandLine.run())
-        #self.assertEqual('Specified home', out.getvalue().strip()[:14])
-        self.assertTrue(out.getvalue().strip().startswith('Specified home'))
+        console = out.getvalue().strip()
+        self.assertTrue(console.startswith('Specified home'), console)
 
     def test_203_run_talk_nonexisting_home(self):
         sys.argv = ['-talk', '--home=/does/not/exist']
-        with self.captured_output() as (out, err):
+        with self.managed_std_streams() as (out, err):
             self.assertEqual(1, karlsruher.CommandLine.run())
-        #self.assertEqual('Specified home', out.getvalue().strip()[:14])
-        self.assertTrue(out.getvalue().strip().startswith('Specified home'))
+        console = out.getvalue().strip()
+        self.assertTrue(console.startswith('Specified home'), console)
 
 
     def test_301_run_housekeeping_with_home(self):
         sys.argv = ['-housekeeping', '--home=' + tempfile.gettempdir()]
-        with self.captured_output() as (out, err):
+        with self.managed_std_streams() as (out, err):
             self.assertEqual(1, karlsruher.CommandLine.run())
-        #self.assertEqual('Missing credentials', out.getvalue().strip()[:19])
-        self.assertTrue(out.getvalue().strip().startswith('Missing credentials'), out.getvalue().strip())
+        console = out.getvalue().strip()
+        self.assertTrue(console.startswith('Please create'), console)
 
     def test_302_run_read_with_home(self):
         sys.argv = ['-read', '--home=' + tempfile.gettempdir()]
-        with self.captured_output() as (out, err):
+        with self.managed_std_streams() as (out, err):
             self.assertEqual(1, karlsruher.CommandLine.run())
-        #self.assertEqual('Missing credentials', out.getvalue().strip()[:19])
-        self.assertTrue(out.getvalue().strip().startswith('Missing credentials'))
+        console = out.getvalue().strip()
+        self.assertTrue(console.startswith('Please create'), console)
 
     def test_303_run_talk_with_home(self):
         sys.argv = ['-talk', '--home=' + tempfile.gettempdir()]
-        with self.captured_output() as (out, err):
+        with self.managed_std_streams() as (out, err):
             self.assertEqual(1, karlsruher.CommandLine.run())
-        #self.assertEqual('Missing credentials', out.getvalue().strip()[:19])
-        self.assertTrue(out.getvalue().strip().startswith('Missing credentials'))
+        console = out.getvalue().strip()
+        self.assertTrue(console.startswith('Please create'), console)
 
 
     @mock.patch.object(karlsruher.Karlsruher, '__init__', lambda x,y:None)
     @mock.patch.object(karlsruher.Karlsruher, 'lock', mock.Mock())
     @mock.patch.object(karlsruher.Karlsruher, 'logger', mock.Mock())
+    @mock.patch.object(karlsruher.Karlsruher, 'brain', mock.Mock())
     @mock.patch.object(
         karlsruher.Karlsruher, 'twitter',
         mock.MagicMock(
-            me = mock.Mock(screen_name='testbot')
+            me=mock.Mock(screen_name='testbot'),
         )
     )
-    def test_401_run_housekeeping_with_mock_(self):
+    def test_401_run_housekeeping_with_mock(self):
         sys.argv = ['-housekeeping', '--home=' + tempfile.gettempdir()]
         self.assertEqual(0, karlsruher.CommandLine.run())
 
-    @mock.patch.object(karlsruher.Karlsruher, '__init__', lambda x,y:None)
+    @mock.patch.object(karlsruher.Karlsruher, '__init__', lambda x, y: None)
     @mock.patch.object(karlsruher.Karlsruher, 'lock', mock.Mock())
     @mock.patch.object(karlsruher.Karlsruher, 'logger', mock.Mock())
     @mock.patch.object(
         karlsruher.Karlsruher, 'twitter',
         mock.MagicMock(
-            me = mock.Mock(screen_name='testbot')
+            me=mock.Mock(screen_name='testbot')
         )
     )
     def test_402_run_read_with_mock_(self):
@@ -484,7 +487,7 @@ class CommandLineTest(TestCase):
     @mock.patch.object(
         karlsruher.Karlsruher, 'twitter',
         mock.MagicMock(
-            me = mock.Mock(screen_name='testbot')
+            me=mock.Mock(screen_name='testbot')
         )
     )
     def test_403_run_talk_with_mock_(self):

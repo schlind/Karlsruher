@@ -1,6 +1,9 @@
 '''
 @Karlsruher Retweet Robot
 https://github.com/schlind/Karlsruher
+
+Core functionality classes
+
 '''
 
 import logging
@@ -8,51 +11,60 @@ import os
 import sys
 import sqlite3
 
-
 from .common import StopWatch
 from .common import Lock
 from .twitter import Twitter
 
-##
-##
+
 class Karlsruher:
 
-    logger = None
+    '''Provide the Robot personality.'''
+
+    brain = None
     lock = None
+    logger = None
     twitter = None
+
 
     def __init__(self, config, brain=None, twitter=None):
 
         home = config.home
 
         if not os.path.isdir(home):
-            raise Exception('Specified home "{}" not a directory. Please specify a valid "home" directory.'.format(home))
+            raise Exception('Specified home "{}" is not a directory. Please specify a valid home directory.'.format(home))
 
         self.do_reply = config.do_reply
         self.do_retweet = config.do_retweet
 
         self.logger = logging.getLogger(self.__class__.__name__)
 
-        credentials = home + '/credentials.py'
+        credentials = '{}/credentials.py'.format(home)
         self.twitter = twitter if twitter else Twitter(credentials)
         self.screen_name = self.twitter.me().screen_name
         self.logger.info('Hello, my name is @%s.', self.screen_name)
 
-        database = home + '/'+ self.screen_name.lower() + '.db'
+        database = '{}/{}.db'.format(home, self.screen_name.lower())
         self.brain = brain if brain else Brain(database)
-        self.logger.info('Having %s.', self.brain.metrics())
+        self.logger.info('Metrics: %s.', self.brain.metrics())
 
         self.advisors = []
         for user in self.twitter.list_advisors():
             self.advisors.append(str(user.id))
         self.logger.info('Having %s advisors.', len(self.advisors))
 
-        self.lock = Lock(home + '/.lock.' + self.screen_name.lower())
-
-
+        self.lock = Lock('{}/.lock.{}'.format(home, self.screen_name.lower()))
 
 
     def house_keeping(self):
+        '''Perform housekeeping actions.
+
+        A housekeeping session imports followers and friends
+        from the Twitter API. Due to rate limits this can take
+        up to 1 hour per 1000 followers/friends.
+
+        During a housekeeping session no other actions are performed.
+
+        '''
 
         if not self.lock.acquire():
             self.logger.debug('Housekeeping locked by "%s".', self.lock.path)
@@ -61,18 +73,22 @@ class Karlsruher:
         self.logger.info('Housekeeping! This may take a while...')
 
         watch = StopWatch()
-        try:
-            self.brain.import_users('followers', self.twitter.followers)
-            self.brain.import_users('friends', self.twitter.friends)
-        except: # pragma: no cover
-            self.logger.exception('Exception during housekeeping!')
-
+        self.brain.import_users('followers', self.twitter.followers)
+        self.brain.import_users('friends', self.twitter.friends)
         self.logger.info('Housekeeping done, took %s.', watch.elapsed())
         self.lock.release()
         return True
 
 
     def read_mentions(self):
+        '''Read latest mentions.
+
+        A read session fetches and reads the latest tweets
+        from the bot's mention timeline.
+
+        During a read session no other actions are performed.
+
+        '''
 
         if not self.lock.acquire():
             self.logger.debug('Reading locked by "%s".', self.lock.path)
@@ -82,10 +98,7 @@ class Karlsruher:
 
         watch = StopWatch()
         for mention in self.twitter.mentions_timeline():
-            try:
-                self.read_mention(mention)
-            except: # pragma: no cover
-                self.logger.exception('Exception while reading mention.')
+            self.read_mention(mention)
 
         self.logger.info('Reading done, took %s.', watch.elapsed())
         self.lock.release()
@@ -93,7 +106,16 @@ class Karlsruher:
 
 
     def read_mention(self, tweet):
+        '''Read a single mention and apply actions.
 
+        A mention is just a tweet to be read.
+        The applied action can either be "read_mention",
+        "advice_action" or "retweet_action".
+
+        Returns True if the mention was read first
+        or False if the mention was already read before.
+
+        '''
         tweet_log = '@{}/{}'.format(tweet.user.screen_name, tweet.id)
 
         if self.brain.has_tweet(tweet):
@@ -113,6 +135,18 @@ class Karlsruher:
 
 
     def advice_action(self, tweet):
+        '''Take an advice.
+
+        Users in Twitter list "advisors" can advice the
+        bot to either got to sleep (no more retweeting)
+        or to wake up (retweet again).
+
+        Implemented advices:
+
+                Tweet "@BOTNAME! Geh schlafen!"
+
+                Tweet "@BOTNAME! Wach auf!"
+        '''
 
         if str(tweet.user.id) not in self.advisors:
             self.logger.debug('@%s is not an advisor.', tweet.user.screen_name)
@@ -146,8 +180,18 @@ class Karlsruher:
 
 
     def send_reply(self, tweet, status):
+        '''Send a reply.
+
+        Twitter want's the origin screen_name to be mentioned
+        in the status text when replying.
+
+        A placeholder "@{}" in your status will be replaced
+        with the related screen_name.
+
+        '''
 
         status = status.format(tweet.user.screen_name)
+
         self.logger.debug(
             '%s: "%s"', 'Reply' if self.do_reply else 'Would reply', status
         )
@@ -159,6 +203,12 @@ class Karlsruher:
 
 
     def retweet_action(self, tweet):
+        '''Retweet any public mention...
+
+            ... from followers
+            ... but no replies.
+
+        '''
 
         if self.brain.get_value('retweet.disabled'):
             self.logger.debug('I am sleeping and not retweeting.')
@@ -194,9 +244,8 @@ class Karlsruher:
 
 
 
-##
-##
 class Brain:
+    '''Provide memories.'''
 
     schema = [
         '''CREATE TABLE IF NOT EXISTS config (
@@ -237,6 +286,7 @@ class Brain:
 
 
     def set_value(self, name, value=None):
+        '''Store a named value.'''
 
         cursor = self.connection.cursor()
         if value is None:
@@ -253,6 +303,7 @@ class Brain:
 
 
     def get_value(self, name, default=None):
+        '''Provide a stored named value or the default if no value exists.'''
 
         self.logger.debug('Getting value "%s"', name)
 
@@ -274,6 +325,7 @@ class Brain:
 
 
     def has_tweet(self, tweet):
+        '''Indicate whether a tweet is stored or not.'''
 
         cursor = self.connection.cursor()
         cursor.execute('SELECT id FROM tweets WHERE id = ?', (str(tweet.id),))
@@ -283,9 +335,9 @@ class Brain:
 
 
     def add_tweet(self, tweet, reason):
+        '''Store a tweet.'''
 
         self.logger.debug('Adding tweet "%s".', tweet.id)
-
         cursor = self.connection.cursor()
         cursor.execute(
             'INSERT OR IGNORE INTO tweets (id,user_screen_name,reason) VALUES (?,?,?)',
@@ -296,9 +348,11 @@ class Brain:
 
 
     def count_tweets(self, user_screen_name=None, reason=None):
+        '''Provide the count of tweets.'''
 
         count = 'SELECT COUNT(id) AS count FROM tweets'
         where = ()
+
         if user_screen_name and reason:
             count += ' WHERE user_screen_name = ? AND reason = ?'
             where = (str(user_screen_name), str(reason))
@@ -319,6 +373,7 @@ class Brain:
 
 
     def users(self, table):
+        '''Provide all users from the specified table.'''
 
         cursor = self.connection.cursor()
         cursor.execute(
@@ -330,6 +385,7 @@ class Brain:
 
 
     def has_user(self, table, user_id):
+        '''Indicate whether a user exists in the specified table or not.'''
 
         cursor = self.connection.cursor()
         cursor.execute(
@@ -345,6 +401,7 @@ class Brain:
 
 
     def import_users(self, table, source):
+        '''Import users from the given source into the specified table.'''
 
         limbo = self.connection.cursor()
         limbo.execute('UPDATE {} SET state = 2 WHERE state = 1'.format(table))
@@ -372,6 +429,7 @@ class Brain:
 
 
     def add_user(self, table, user, state=1):
+        '''Store a user in the specified table.'''
 
         self.logger.debug(
             'Adding user "%s" to "%s"', user.screen_name, table
@@ -386,6 +444,7 @@ class Brain:
 
 
     def metrics(self):
+        '''Provide simple database metrics.'''
 
         cursor = self.connection.cursor()
 
@@ -414,10 +473,8 @@ class Brain:
 
 
 
-##
-##
-class CommandLine:
 
+class CommandLine:
     """@Karlsruher Retweet Robot command line
 
     $ --home=/path/to [-read|-talk|-housekeeping]
@@ -431,7 +488,7 @@ class CommandLine:
     -talk	Combines "-read" and all activities.
 
   # Cronjob (every 5 minutes):
-  */5 * * * * /PATH/karlsruher/cron.sh --home=PATH -talk >/dev/null 2>&1
+  */5 * * * * /PATH/karlsruher --home=PATH -talk >/dev/null 2>&1
 
 
   or:
@@ -443,7 +500,7 @@ class CommandLine:
         Run this nightly once per day.
 
   # Cronjob (once per day):
-  3 3 * * * /PATH/karlsruher/cron.sh --home=PATH -housekeeping >/dev/null 2>&1
+  3 3 * * * /PATH/karlsruher --home=PATH -housekeeping >/dev/null 2>&1
 
 
   or:
@@ -455,69 +512,53 @@ class CommandLine:
     """
 
     @staticmethod
-    def home():
-
-        home = None
-        __home = '--home='
-        for arg in sys.argv:
-            if arg.startswith(__home):
-                home = arg[len(__home):]
-
-        if not home:
-            raise Exception('No home directory specified! Specify with "--home=/path/to/home".')
-
-        if not os.path.isdir(home):
-            raise Exception('Specified home "{}" not a directory, aborting.'.format(home))
-
-        return home
-
-
-    @staticmethod
     def run():
+        '''Run it.'''
 
-        logging.basicConfig(
-            level=logging.DEBUG if '-debug' in sys.argv else logging.INFO,
-            format='%(asctime)s %(levelname)-5.5s [%(name)s.%(funcName)s]: %(message)s',
-            handlers=[logging.StreamHandler()]
-        )
+        home, task = None, None
 
-        run_commands = ['-housekeeping', '-read', '-talk']
-        is_command = False
-        for command in run_commands:
-            if command in sys.argv:
-                is_command = True
+        for arg in sys.argv:
+            if arg.startswith('--home='):
+                home = arg[len('--home='):]
+            if not task and arg in ['-housekeeping', '-read', '-talk']:
+                task = arg
 
-        if is_command:
-            try:
+        if not task:
+            print(CommandLine.__doc__)
+            return 0
 
-                config = Config.create(
-                    home=CommandLine.home(),
-                    do_reply='-reply' in sys.argv or '-talk' in sys.argv,
-                    do_retweet='-retweet' in sys.argv or '-talk' in sys.argv
-                )
+        try:
+            if not home:
+                raise Exception('Please specify "--home=PATH".')
 
-                instance = Karlsruher(config)
+            worker = Karlsruher(Config.create(
+                home=home,
+                do_reply='-reply' in sys.argv or '-talk' in sys.argv,
+                do_retweet='-retweet' in sys.argv or '-talk' in sys.argv
+            ))
 
-                if '-housekeeping' in sys.argv:
-                    return 0 if instance.house_keeping() else 1
-                if '-read' in sys.argv or '-talk' in sys.argv:
-                    return 0 if instance.read_mentions() else 1
+            if task == '-housekeeping':
+                worker.house_keeping()
 
-            except Exception as message:
-                print(message)
-                return 1
+            if task in ['-read', '-talk']:
+                worker.read_mentions()
 
-        print(CommandLine.__doc__)
+        # pylint: disable=broad-except
+        except Exception as message:
+            print(message)
+            return 1
+
         return 0
 
 
 
-##
-##
+
 class Config:
+    '''Provide configuration values.'''
 
     @staticmethod
     def create(home, do_reply=False, do_retweet=False):
+        '''Provide the specified config.'''
         config = Config()
         config.home = home
         config.do_reply = do_reply

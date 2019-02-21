@@ -3,8 +3,9 @@
 https://github.com/schlind/Karlsruher
 '''
 
-from unittest import mock, TestCase
 import tempfile
+from unittest import mock
+from unittest import TestCase
 
 import karlsruher
 
@@ -27,6 +28,7 @@ class LockTest(TestCase):
     def test_can_acquire_lock_only_once(self):
         self.assertTrue(self.lock.acquire())
         self.assertFalse(self.lock.acquire())
+        #self.assertRaises(karlsruher.LockPresent, self.lock.acquire())
 
     def test_can_release_lock(self):
         self.lock.release()
