@@ -21,35 +21,25 @@ class Karlsruher:
     lock = None
     twitter = None
 
-    # pylint: disable=too-many-instance-attributes
-    def __init__(self, home, brain=None, twitter=None):
+    def __init__(self, config, brain=None, twitter=None):
+
+        home = config.home
 
         if not os.path.isdir(home):
-            raise Exception('Please specify a valid "home" directory.')
+            raise Exception('Specified home "{}" not a directory. Please specify a valid "home" directory.'.format(home))
 
-        self.home = home
+        self.do_reply = config.do_reply
+        self.do_retweet = config.do_retweet
 
         self.logger = logging.getLogger(self.__class__.__name__)
 
-        self.do_reply = False
-        self.do_retweet = False
-
-        if twitter:
-            self.twitter = twitter
-        else:
-            self.twitter = Twitter()
-            self.twitter.connect(self.home + '/credentials.py')
-
+        credentials = home + '/credentials.py'
+        self.twitter = twitter if twitter else Twitter(credentials)
         self.screen_name = self.twitter.me().screen_name
-
         self.logger.info('Hello, my name is @%s.', self.screen_name)
 
-        if brain:
-            self.brain = brain
-        else:
-            database = self.home + '/'+ self.screen_name.lower() + '.db'
-            self.brain = Brain(database)
-
+        database = home + '/'+ self.screen_name.lower() + '.db'
+        self.brain = brain if brain else Brain(database)
         self.logger.info('Having %s.', self.brain.metrics())
 
         self.advisors = []
@@ -57,7 +47,9 @@ class Karlsruher:
             self.advisors.append(str(user.id))
         self.logger.info('Having %s advisors.', len(self.advisors))
 
-        self.lock = Lock(self.home + '/.lock.' + self.screen_name.lower())
+        self.lock = Lock(home + '/.lock.' + self.screen_name.lower())
+
+
 
 
     def house_keeping(self):
@@ -428,24 +420,18 @@ class CommandLine:
 
     """@Karlsruher Retweet Robot command line
 
-    --home=/path/to/home
+    $ --home=/path/to [-read|-talk|-housekeeping]
 
   Run Modes:
-
-
     -read	Read timelines and trigger activities.
-
-    and add activities:
-
-        -retweet	Send retweets.
-        -reply		Send replies.
-
+            and add activities:
+                -retweet	Send retweets.
+                -reply		Send replies.
   or:
-
     -talk	Combines "-read" and all activities.
 
-    # Cronjob (every 5 minutes):
-    */5 * * * * /path/to/karlsruher/run.py -talk >/dev/null 2>&1
+  # Cronjob (every 5 minutes):
+  */5 * * * * /PATH/karlsruher/cron.sh --home=PATH -talk >/dev/null 2>&1
 
 
   or:
@@ -456,8 +442,8 @@ class CommandLine:
         and takes up to 1 hour per 1000 followers/friends.
         Run this nightly once per day.
 
-    # Cronjob (once per day):
-    3 3 * * * /path/to/karlsruher/run.py -housekeeping >/dev/null 2>&1
+  # Cronjob (once per day):
+  3 3 * * * /PATH/karlsruher/cron.sh --home=PATH -housekeeping >/dev/null 2>&1
 
 
   or:
@@ -472,12 +458,13 @@ class CommandLine:
     def home():
 
         home = None
+        __home = '--home='
         for arg in sys.argv:
-            if arg.startswith('--home='):
-                home = arg[len('--home='):]
+            if arg.startswith(__home):
+                home = arg[len(__home):]
 
         if not home:
-            raise Exception('No home directory, specify with "--home=/path/to/home".')
+            raise Exception('No home directory specified! Specify with "--home=/path/to/home".')
 
         if not os.path.isdir(home):
             raise Exception('Specified home "{}" not a directory, aborting.'.format(home))
@@ -494,22 +481,45 @@ class CommandLine:
             handlers=[logging.StreamHandler()]
         )
 
-        try:
+        run_commands = ['-housekeeping', '-read', '-talk']
+        is_command = False
+        for command in run_commands:
+            if command in sys.argv:
+                is_command = True
 
-            if '-housekeeping' in sys.argv:
-                Karlsruher(CommandLine.home()).house_keeping()
+        if is_command:
+            try:
 
-            elif '-read' in sys.argv or '-talk' in sys.argv:
-                karlsruher = Karlsruher(CommandLine.home())
-                karlsruher.do_reply = '-reply' in sys.argv or '-talk' in sys.argv
-                karlsruher.do_retweet = '-retweet' in sys.argv or '-talk' in sys.argv
-                karlsruher.read_mentions()
+                config = Config.create(
+                    home=CommandLine.home(),
+                    do_reply='-reply' in sys.argv or '-talk' in sys.argv,
+                    do_retweet='-retweet' in sys.argv or '-talk' in sys.argv
+                )
 
-            else:
-                print(CommandLine.__doc__)
+                instance = Karlsruher(config)
 
-            return 0
+                if '-housekeeping' in sys.argv:
+                    return 0 if instance.house_keeping() else 1
+                if '-read' in sys.argv or '-talk' in sys.argv:
+                    return 0 if instance.read_mentions() else 1
 
-        except Exception as message:
-            print(message)
-            return 1
+            except Exception as message:
+                print(message)
+                return 1
+
+        print(CommandLine.__doc__)
+        return 0
+
+
+
+##
+##
+class Config:
+
+    @staticmethod
+    def create(home, do_reply=False, do_retweet=False):
+        config = Config()
+        config.home = home
+        config.do_reply = do_reply
+        config.do_retweet = do_retweet
+        return config

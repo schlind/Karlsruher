@@ -10,12 +10,12 @@ import tweepy
 ##
 class Twitter:
 
-    def __init__(self):
+    """Proxy required API calls."""
+
+    def __init__(self, credentials = None):
         self.api = None
 
-    def connect(self, credentials):
-
-        #credentials = self.credentials
+    #def connect(self, credentials):
 
         if not os.path.isfile(credentials):
             raise Exception('''Missing credentials file!
