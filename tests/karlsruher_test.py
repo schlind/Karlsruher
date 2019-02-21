@@ -69,7 +69,7 @@ class KarlsruherTest(TestCase):
         )
 
         self.bot = karlsruher.Karlsruher(
-            config = karlsruher.Config.create(home=self.home),
+            config = karlsruher.Config(home=self.home),
             brain = self.brain,
             twitter = self.twitter
         )
@@ -77,131 +77,121 @@ class KarlsruherTest(TestCase):
     def tearDown(self):
         self.bot.lock.release()
 
+    def test_require_home_directory(self):
+        self.assertRaises(Exception, karlsruher.Karlsruher, '/not/existing')
 
-    def test_000_require_home_directory(self):
-        self.assertRaises(Exception, karlsruher.Karlsruher, '/not/existing/directory')
-
-    def test_000_brain_create(self):
+    def test_brain_create(self):
         bot = karlsruher.Karlsruher(
-            config = karlsruher.Config.create(home=self.home),
-            twitter = self.twitter
+            config=karlsruher.Config(home=self.home),
+            twitter=self.twitter
         )
         self.assertTrue(bot.brain.__class__)
 
-
-    def test_001_not_locked(self):
+    def test_not_locked(self):
         self.assertFalse(self.bot.lock.is_present())
 
-    def test_101_init_can_get_me(self):
+    def test_init_can_get_me(self):
         self.assertEqual(self.bot.screen_name, self.me.screen_name)
         self.assertEqual(1, self.bot.twitter.me.call_count)
 
-    def test_102_init_can_load_advisors(self):
+    def test_init_can_load_advisors(self):
         self.assertEqual(1, self.bot.twitter.list_advisors.call_count)
-        self.assertEqual(1, len(self.bot.advisors))
-        self.assertTrue(str(self.advisor.id) in self.bot.advisors)
-        self.assertFalse(str(self.unknown.id) in self.bot.advisors)
+        self.assertEqual(1, len(self.bot.brain.advisors))
+        self.assertTrue(str(self.advisor.id) in self.bot.brain.advisors)
+        self.assertFalse(str(self.unknown.id) in self.bot.brain.advisors)
 
-
-    def test_201_empty_brain(self):
+    def test_empty_brain(self):
         self.assertEqual(0, self.bot.brain.count_tweets())
         self.assertEqual(0, len(self.bot.brain.users('followers')))
         self.assertEqual(0, len(self.bot.brain.users('friends')))
         self.assertIsNone(self.bot.brain.get_value('retweet.disabled'))
 
-
-    def test_301_housekeeping_not_when_locked(self):
+    def test_housekeeping_not_when_locked(self):
         self.assertTrue(self.bot.lock.acquire())
-        self.assertFalse(self.bot.house_keeping())
+        self.assertRaises(karlsruher.common.LockException, self.bot.house_keeping)
 
-    def test_302_housekeeping(self):
+    def test_housekeeping(self):
         self.bot.house_keeping()
         self.assertEqual(2, len(self.bot.brain.users('followers')))
         self.assertEqual(1, len(self.bot.brain.users('friends')))
 
-
-    def test_401_read_mention(self):
+    def test_read_mention(self):
         self.assertTrue(self.bot.read_mention(self.tweet))
 
-    def test_402_read_mention_only_once(self):
+    def test_read_mention_only_once(self):
         self.assertTrue(self.bot.read_mention(self.tweet))
         self.assertFalse(self.bot.read_mention(self.tweet))
 
-
-    def test_501_read_mentions_not_when_locked(self):
+    def test_read_mentions_not_when_locked(self):
         self.assertTrue(self.bot.lock.acquire())
-        self.assertFalse(self.bot.read_mentions())
+        self.assertRaises(karlsruher.common.LockException, self.bot.read_mentions)
         self.assertEqual(0, self.bot.brain.count_tweets())
         self.assertEqual(0, self.bot.twitter.update_status.call_count)
         self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
-    def test_502_read_mentions_delegate_advice(self):
-        self.bot.do_reply = True
-        self.assertTrue(self.bot.read_mentions())
+    def test_read_mentions_delegate_advice(self):
+        self.bot.config.do_reply = True
+        self.bot.read_mentions()
         self.assertEqual(5, self.bot.brain.count_tweets())
         self.assertEqual(2, self.bot.twitter.update_status.call_count)
         self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
-    def test_503_read_mentions_delegate_retweet(self):
-        self.bot.do_retweet = True
+    def test_read_mentions_delegate_retweet(self):
+        self.bot.config.do_retweet = True
         self.bot.house_keeping()
-        self.assertTrue(self.bot.read_mentions())
+        self.bot.read_mentions()
         self.assertEqual(0, self.bot.twitter.update_status.call_count)
         self.assertEqual(2, self.bot.twitter.retweet.call_count)
 
-
-
-
-    def test_601_advice_can_ignore_from_non_advisors(self):
+    def test_advice_can_ignore_from_non_advisors(self):
         self.tweet.text = '@{}! gEh scHlafen!!!'.format(self.me.screen_name)
         self.assertFalse(self.bot.advice_action(self.tweet))
 
-    def test_602_advice_can_accept_sleep(self):
+    def test_advice_can_accept_sleep(self):
         self.tweet.text = '@{}! gEh scHlafen!!!'.format(self.me.screen_name)
         self.tweet.user = self.advisor
-        self.bot.do_reply = True
+        self.bot.config.do_reply = True
         self.assertTrue(self.bot.advice_action(self.tweet))
         self.assertTrue(self.bot.brain.get_value('retweet.disabled'))
         self.assertEqual(1, self.bot.twitter.update_status.call_count)
 
-    def test_603_advice_can_accept_wakeup(self):
+    def test_advice_can_accept_wakeup(self):
         self.tweet.text = '@{}! waCh auf!!!'.format(self.me.screen_name)
         self.tweet.user = self.advisor
-        self.bot.do_reply = False
+        self.bot.config.do_reply = False
         self.bot.brain.set_value('retweet.disabled', True)
         self.assertTrue(self.bot.advice_action(self.tweet))
         self.assertIsNone(self.bot.brain.get_value('retweet.disabled'))
         self.assertEqual(0, self.bot.twitter.update_status.call_count)
 
-    def test_604_advice_not_given_by_advisor(self):
+    def test_advice_not_given_by_advisor(self):
         self.tweet.text = '@{} not an advice'.format(self.me.screen_name)
         self.tweet.user = self.advisor
         self.assertFalse(self.bot.advice_action(self.tweet))
 
-    def test_605_advice_unrecognized_by_advisor(self):
+    def test_advice_unrecognized_by_advisor(self):
         self.tweet.text = '@{}! unrecognized advice'.format(self.me.screen_name)
         self.tweet.user = self.advisor
         self.assertFalse(self.bot.advice_action(self.tweet))
 
-
-    def test_701_retweet_not_during_sleep(self):
+    def test_retweet_not_during_sleep(self):
         self.bot.house_keeping()
-        self.bot.do_retweet = True
+        self.bot.config.do_retweet = True
         self.tweet.user = self.follower
         self.bot.brain.set_value('retweet.disabled', True)
         self.assertFalse(self.bot.retweet_action(self.tweet))
         self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
-    def test_702_retweet_not_myself(self):
+    def test_retweet_not_myself(self):
         self.bot.house_keeping()
-        self.bot.do_retweet = True
+        self.bot.config.do_retweet = True
         self.tweet.user = self.me
         self.assertFalse(self.bot.retweet_action(self.tweet))
         self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
-    def test_703_retweet_not_protected(self):
+    def test_retweet_not_protected(self):
         self.bot.house_keeping()
-        self.bot.do_retweet = True
+        self.bot.config.do_retweet = True
         for user in [
             self.me, self.advisor, self.follower, self.friend, self.unknown
         ]:
@@ -210,9 +200,9 @@ class KarlsruherTest(TestCase):
             self.assertFalse(self.bot.retweet_action(self.tweet))
         self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
-    def test_704_retweet_not_replies(self):
+    def test_retweet_not_replies(self):
         self.bot.house_keeping()
-        self.bot.do_retweet = True
+        self.bot.config.do_retweet = True
         self.tweet.in_reply_to_status_id = 7500
         for user in [
             self.me, self.advisor, self.follower, self.friend, self.unknown
@@ -221,23 +211,23 @@ class KarlsruherTest(TestCase):
             self.assertFalse(self.bot.retweet_action(self.tweet))
         self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
-    def test_704_retweet_not_non_followers(self):
+    def test_retweet_not_non_followers(self):
         self.bot.house_keeping()
-        self.bot.do_retweet = True
+        self.bot.config.do_retweet = True
         self.assertFalse(self.bot.retweet_action(self.tweet))
         self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
-    def test_705_retweet_follower(self):
+    def test_retweet_follower(self):
         self.bot.house_keeping()
-        self.bot.do_retweet = True
+        self.bot.config.do_retweet = True
         self.tweet.user = self.follower
         self.assertTrue(self.bot.retweet_action(self.tweet))
         self.assertEqual(1, self.bot.twitter.retweet.call_count)
 
-    def test_706_retweet_not_when_disabled(self):
+    def test_retweet_not_when_disabled(self):
         self.bot.house_keeping()
-        self.bot.do_retweet = False
-        for user in [self.follower, self.advisor ]:
+        self.bot.config.do_retweet = False
+        for user in [self.follower, self.advisor]:
             self.tweet.user = user
             self.assertTrue(self.bot.retweet_action(self.tweet))
         self.assertEqual(0, self.bot.twitter.retweet.call_count)
@@ -273,30 +263,29 @@ class BrainTest(TestCase):
         self.assertIsNone(self.brain.get_value('test'))
         self.assertFalse(self.brain.get_value('test'))
 
-
-    def test_brain_101_can_count_tweets_empty(self):
+    def test_can_count_tweets_empty(self):
         self.assertEqual(0, self.brain.count_tweets())
 
-    def test_brain_102_can_add_has_tweet(self):
+    def test_can_add_and_have_tweet(self):
         tweet = mock.Mock(id = 111, user = self.user1)
         self.assertFalse(self.brain.has_tweet(tweet))
         self.assertEqual(1, self.brain.add_tweet(tweet, 'test'))
         self.assertTrue(self.brain.has_tweet(tweet))
 
-    def test_brain_103_not_updating_tweets(self):
+    def test_not_updating_tweets(self):
         tweet = mock.Mock(id = 111, user = self.user1)
         self.assertFalse(self.brain.has_tweet(tweet))
         self.assertEqual(1, self.brain.add_tweet(tweet, 'test'))
         self.assertEqual(0, self.brain.add_tweet(tweet, 'test'))
 
-    def test_brain_104_can_count_tweets(self):
+    def test_can_count_tweets(self):
         self.brain.add_tweet(mock.Mock(id = 111, user = self.user1), 'test')
         self.brain.add_tweet(mock.Mock(id = 222, user = self.user1), 'test')
         self.assertEqual(2, self.brain.count_tweets())
         self.brain.add_tweet(mock.Mock(id = 333, user = self.user2), 'test')
         self.assertEqual(3, self.brain.count_tweets())
 
-    def test_brain_105_can_count_tweets_by_reason(self):
+    def test_can_count_tweets_by_reason(self):
         self.brain.add_tweet(mock.Mock(id = 111, user = self.user1), 'A')
         self.brain.add_tweet(mock.Mock(id = 222, user = self.user1), 'B')
         self.brain.add_tweet(mock.Mock(id = 333, user = self.user2), 'A')
@@ -304,7 +293,7 @@ class BrainTest(TestCase):
         self.assertEqual(1, self.brain.count_tweets(reason = 'B'))
         self.assertEqual(0, self.brain.count_tweets(reason = '?'))
 
-    def test_brain_106_can_count_tweets_by_screen_name(self):
+    def test_can_count_tweets_by_screen_name(self):
         self.brain.add_tweet(mock.Mock(id = 111, user = self.user1), 'A')
         self.brain.add_tweet(mock.Mock(id = 222, user = self.user1), 'B')
         self.brain.add_tweet(mock.Mock(id = 333, user = self.user2), 'A')
@@ -312,7 +301,7 @@ class BrainTest(TestCase):
         self.assertEqual(1, self.brain.count_tweets(user_screen_name = self.user2.screen_name))
         self.assertEqual(0, self.brain.count_tweets(user_screen_name = '?'))
 
-    def test_brain_107_can_count_tweets_by_reson_and_screen_name(self):
+    def test_can_count_tweets_by_reason_and_screen_name(self):
         self.brain.add_tweet(mock.Mock(id = 111, user = self.user1), 'A')
         self.brain.add_tweet(mock.Mock(id = 222, user = self.user1), 'B')
         self.brain.add_tweet(mock.Mock(id = 333, user = self.user2), 'A')
@@ -321,43 +310,51 @@ class BrainTest(TestCase):
         self.assertEqual(1, self.brain.count_tweets(reason = 'A', user_screen_name = self.user2.screen_name))
         self.assertEqual(0, self.brain.count_tweets(reason = '?', user_screen_name = '?'))
 
-
-    def __data_for_test_201(self):
-        for user in [ self.user1, self.user2, self.user3 ]:
-            yield user
-
-    def test_brain_201_can_add_has_user(self):
+    def test_can_add_and_has_user(self):
         for table in ['followers', 'friends']:
             self.assertFalse(self.brain.has_user(table, self.user3.id))
             self.assertEqual(1, self.brain.add_user(table, self.user3))
             self.assertTrue(self.brain.has_user(table, self.user3.id))
 
-    def test_brain_201_can_handle_users_stream(self):
+    def __user_stream(self):
+        for user in [ self.user1, self.user2, self.user3 ]:
+            yield user
+
+    def test_can_handle_users_stream(self):
         for table in ['followers', 'friends']:
-            self.brain.import_users(table , self.__data_for_test_201)
+            self.brain.import_users(table , self.__user_stream)
             self.assertEqual(3, len(self.brain.users(table)))
 
-    def test_brain_201_can_handle_users_array(self):
+    def test_can_handle_users_array(self):
         for table in ['followers', 'friends']:
-            data = self.__data_for_test_201()
-            self.brain.import_users(table , data)
+            self.brain.import_users(table , self.__user_stream())
             self.assertEqual(3, len(self.brain.users(table)))
 
+    def test_can_handle_advisors_stream(self):
+        self.brain.memorize_advisors(self.__user_stream)
+        self.assertEqual(3, len(self.brain.advisors))
 
-    def test_brain_301_metrics_complete(self):
+    def test_can_handle_advisors_array(self):
+        self.brain.memorize_advisors(self.__user_stream())
+        self.assertEqual(3, len(self.brain.advisors))
+
+    def test_metrics_complete(self):
         metrics = self.brain.metrics()
         self.assertTrue('0' in metrics)
         self.assertTrue('(' in metrics)
         self.assertTrue(')' in metrics)
-        self.assertTrue('tweets' in metrics)
-        self.assertTrue('followers' in metrics)
-        self.assertTrue('friends' in metrics)
+        self.assertTrue('tweets, ' in metrics)
+        self.assertTrue('advisors, ' in metrics)
+        self.assertTrue('followers, ' in metrics)
+        self.assertTrue('friends, ' in metrics)
         self.assertTrue('config values' in metrics)
 
 
 
 
 class CommandLineTest(TestCase):
+
+    run_commands = ['-housekeeping','-read','-talk']
 
     @contextlib.contextmanager
     def managed_std_streams(self):
@@ -368,128 +365,43 @@ class CommandLineTest(TestCase):
         finally:
             sys.stdout, sys.stderr = realout, realerr
 
-    def setUp(self):
-        pass
-
-
-    def test_000_run_show_help(self):
-        sys.argv = []
+    def test_can_show_help(self):
         with self.managed_std_streams() as (out, err):
-            self.assertEqual(0, karlsruher.CommandLine.run())
+            for arg in ['','-help','what?']:
+                sys.argv = [arg]
+                self.assertEqual(0, karlsruher.CommandLine.run())
+                console = out.getvalue().strip()
+                self.assertTrue(console.startswith('@Karlsruher '), console)
 
-        console = out.getvalue().strip()
-        self.assertTrue(console.startswith('@Karlsruher'), console)
-
-    def test_001_run_show_help(self):
-        sys.argv = ['-help']
+    def test_can_show_error_missing_home(self):
         with self.managed_std_streams() as (out, err):
-            self.assertEqual(0, karlsruher.CommandLine.run())
-        console = out.getvalue().strip()
-        self.assertTrue(console.startswith('@Karlsruher'), console)
+            for arg in self.run_commands:
+                sys.argv = [arg]
+                self.assertEqual(1, karlsruher.CommandLine.run())
+                console = out.getvalue().strip()
+                self.assertTrue(console.startswith('Please specify '), console)
 
-
-    def test_101_run_housekeeping_no_home(self):
-        sys.argv = ['-housekeeping']
+    def test_can_show_error_non_existing_home(self):
         with self.managed_std_streams() as (out, err):
-            self.assertEqual(1, karlsruher.CommandLine.run())
-        console = out.getvalue().strip()
-        self.assertTrue(console.startswith('Please specify'), console)
+            for arg in self.run_commands:
+                sys.argv = [arg, '--home=/does/not/exist']
+                self.assertEqual(1, karlsruher.CommandLine.run())
+                console = out.getvalue().strip()
+                self.assertTrue(console.startswith('Specified home '), console)
 
-    def test_102_run_read_no_home(self):
-        sys.argv = ['-read']
-        with self.managed_std_streams() as (out, err):
-            self.assertEqual(1, karlsruher.CommandLine.run())
-        console = out.getvalue().strip()
-        self.assertTrue(console.startswith('Please specify'), console)
+    def test_can_run_until_credentials_missing(self):
+        for arg in self.run_commands:
+            with self.managed_std_streams() as (out, err):
+                sys.argv = [arg, '--home=' + tempfile.gettempdir()]
+                self.assertEqual(1, karlsruher.CommandLine.run())
+                console = out.getvalue().strip()
+                self.assertTrue(console.startswith('Please create '), console)
 
-    def test_103_run_talk_no_home(self):
-        sys.argv = ['-talk']
-        with self.managed_std_streams() as (out, err):
-            self.assertEqual(1, karlsruher.CommandLine.run())
-        console = out.getvalue().strip()
-        self.assertTrue(console.startswith('Please specify'), console)
-
-
-    def test_201_run_housekeeping_nonexisting_home(self):
-        sys.argv = ['-housekeeping', '--home=/does/not/exist']
-        with self.managed_std_streams() as (out, err):
-            self.assertEqual(1, karlsruher.CommandLine.run())
-        console = out.getvalue().strip()
-        self.assertTrue(console.startswith('Specified home'), console)
-
-    def test_202_run_read_nonexisting_home(self):
-        sys.argv = ['-read', '--home=/does/not/exist']
-        with self.managed_std_streams() as (out, err):
-            self.assertEqual(1, karlsruher.CommandLine.run())
-        console = out.getvalue().strip()
-        self.assertTrue(console.startswith('Specified home'), console)
-
-    def test_203_run_talk_nonexisting_home(self):
-        sys.argv = ['-talk', '--home=/does/not/exist']
-        with self.managed_std_streams() as (out, err):
-            self.assertEqual(1, karlsruher.CommandLine.run())
-        console = out.getvalue().strip()
-        self.assertTrue(console.startswith('Specified home'), console)
-
-
-    def test_301_run_housekeeping_with_home(self):
-        sys.argv = ['-housekeeping', '--home=' + tempfile.gettempdir()]
-        with self.managed_std_streams() as (out, err):
-            self.assertEqual(1, karlsruher.CommandLine.run())
-        console = out.getvalue().strip()
-        self.assertTrue(console.startswith('Please create'), console)
-
-    def test_302_run_read_with_home(self):
-        sys.argv = ['-read', '--home=' + tempfile.gettempdir()]
-        with self.managed_std_streams() as (out, err):
-            self.assertEqual(1, karlsruher.CommandLine.run())
-        console = out.getvalue().strip()
-        self.assertTrue(console.startswith('Please create'), console)
-
-    def test_303_run_talk_with_home(self):
-        sys.argv = ['-talk', '--home=' + tempfile.gettempdir()]
-        with self.managed_std_streams() as (out, err):
-            self.assertEqual(1, karlsruher.CommandLine.run())
-        console = out.getvalue().strip()
-        self.assertTrue(console.startswith('Please create'), console)
-
-
-    @mock.patch.object(karlsruher.Karlsruher, '__init__', lambda x,y:None)
-    @mock.patch.object(karlsruher.Karlsruher, 'lock', mock.Mock())
-    @mock.patch.object(karlsruher.Karlsruher, 'logger', mock.Mock())
-    @mock.patch.object(karlsruher.Karlsruher, 'brain', mock.Mock())
-    @mock.patch.object(
-        karlsruher.Karlsruher, 'twitter',
-        mock.MagicMock(
-            me=mock.Mock(screen_name='testbot'),
-        )
-    )
-    def test_401_run_housekeeping_with_mock(self):
-        sys.argv = ['-housekeeping', '--home=' + tempfile.gettempdir()]
-        self.assertEqual(0, karlsruher.CommandLine.run())
-
-    @mock.patch.object(karlsruher.Karlsruher, '__init__', lambda x, y: None)
-    @mock.patch.object(karlsruher.Karlsruher, 'lock', mock.Mock())
-    @mock.patch.object(karlsruher.Karlsruher, 'logger', mock.Mock())
-    @mock.patch.object(
-        karlsruher.Karlsruher, 'twitter',
-        mock.MagicMock(
-            me=mock.Mock(screen_name='testbot')
-        )
-    )
-    def test_402_run_read_with_mock_(self):
-        sys.argv = ['-read', '--home=' + tempfile.gettempdir()]
-        self.assertEqual(0, karlsruher.CommandLine.run())
-
-    @mock.patch.object(karlsruher.Karlsruher, '__init__', lambda x,y:None)
-    @mock.patch.object(karlsruher.Karlsruher, 'lock', mock.Mock())
-    @mock.patch.object(karlsruher.Karlsruher, 'logger', mock.Mock())
-    @mock.patch.object(
-        karlsruher.Karlsruher, 'twitter',
-        mock.MagicMock(
-            me=mock.Mock(screen_name='testbot')
-        )
-    )
-    def test_403_run_talk_with_mock_(self):
-        sys.argv = ['-talk', '--home=' + tempfile.gettempdir()]
-        self.assertEqual(0, karlsruher.CommandLine.run())
+    @mock.patch('karlsruher.karlsruher.Twitter')
+    def test_can_run(self, twitterMock):
+        for arg in self.run_commands:
+            with self.managed_std_streams() as (out, err):
+                sys.argv = [arg, '--home=' + tempfile.gettempdir()]
+                self.assertEqual(0, karlsruher.CommandLine.run())
+                console = out.getvalue().strip()
+                self.assertEqual(0, len(console))

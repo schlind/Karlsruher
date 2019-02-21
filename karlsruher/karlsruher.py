@@ -26,41 +26,36 @@ class Karlsruher:
     twitter = None
 
 
+    # pylint: disable=too-many-instance-attributes
+    ## because here is where magic happens.
     def __init__(self, config, brain=None, twitter=None):
 
-        home = config.home
+        self.config = config
 
-        if not os.path.isdir(home):
-            raise Exception('Specified home "{}" is not a directory. Please specify a valid home directory.'.format(home))
+        if not os.path.isdir(self.config.home):
+            raise Exception('Specified home "{}" not found.'.format(self.config.home))
 
-        self.do_reply = config.do_reply
-        self.do_retweet = config.do_retweet
-
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(__class__.__name__)
 
         ## Connect Twitter
         ## Prepending home to path supports import
-        ## of file credentials.py in class Twitter
-        sys.path.insert(0, home)
-        credentials = '{}/credentials.py'.format(home)
+        ## of file credentials.py in class Twitter.
+        sys.path.insert(0, self.config.home)
+        credentials = '{}/credentials.py'.format(self.config.home)
         self.logger.debug('Connecting to twitter "%s".', credentials)
         self.twitter = twitter if twitter else Twitter(credentials)
         self.screen_name = self.twitter.me().screen_name
         self.logger.info('Hello, my name is @%s.', self.screen_name)
 
-        ## Fetch advisors from Twitter
-        self.advisors = []
-        for user in self.twitter.list_advisors():
-            self.advisors.append(str(user.id))
-        self.logger.info('Having %s advisors.', len(self.advisors))
-
-        ## Defibrillate Brain class
-        database = '{}/{}.db'.format(home, self.screen_name.lower())
+        ## Defibrillate Brain class and populate
+        ## in memory advisor list from Twitter.
+        database = '{}/{}.db'.format(self.config.home, self.screen_name.lower())
         self.brain = brain if brain else Brain(database)
+        self.brain.memorize_advisors(self.twitter.list_advisors())
         self.logger.info('Metrics: %s.', self.brain.metrics())
 
         ## Prepare a lock file
-        lockfile = '{}/.lock.{}'.format(home, self.screen_name.lower())
+        lockfile = '{}/.lock.{}'.format(self.config.home, self.screen_name.lower())
         self.lock = Lock(lockfile)
 
 
@@ -68,27 +63,23 @@ class Karlsruher:
         '''Perform housekeeping actions.
 
         A housekeeping session imports followers and friends
-        from the Twitter API. Due to rate limits this can take
+        from the Twitter API. Due to rate limits this may take
         up to 1 hour per 1000 followers/friends.
 
-        During a housekeeping session no other actions are performed.
+        During housekeeping sessions no other actions are performed.
 
         '''
 
-        if not self.lock.acquire():
-            self.logger.debug('Housekeeping locked by "%s".', self.lock.path)
-            return False
+        self.lock.acquire()
 
         self.logger.info('Housekeeping! This may take a while...')
-
         watch = StopWatch()
-
-        self.brain.import_users('followers', self.twitter.followers)
-        self.brain.import_users('friends', self.twitter.friends)
-
-        self.logger.info('Housekeeping done, took %s.', watch.elapsed())
-        self.lock.release()
-        return True
+        try:
+            self.brain.import_users('followers', self.twitter.followers)
+            self.brain.import_users('friends', self.twitter.friends)
+        finally:
+            self.lock.release()
+            self.logger.info('Housekeeping done, took %s.', watch.elapsed())
 
 
     def read_mentions(self):
@@ -101,19 +92,16 @@ class Karlsruher:
 
         '''
 
-        if not self.lock.acquire():
-            self.logger.debug('Reading locked by "%s".', self.lock.path)
-            return False
+        self.lock.acquire()
 
         self.logger.info('Reading mentions...')
-
         watch = StopWatch()
-        for mention in self.twitter.mentions_timeline():
-            self.read_mention(mention)
-
-        self.logger.info('Reading done, took %s.', watch.elapsed())
-        self.lock.release()
-        return True
+        try:
+            for mention in self.twitter.mentions_timeline():
+                self.read_mention(mention)
+        finally:
+            self.lock.release()
+            self.logger.info('Reading done, took %s.', watch.elapsed())
 
 
     def read_mention(self, tweet):
@@ -127,6 +115,7 @@ class Karlsruher:
         or False if the mention was already read before.
 
         '''
+
         tweet_log = '@{}/{}'.format(tweet.user.screen_name, tweet.id)
 
         if self.brain.has_tweet(tweet):
@@ -135,13 +124,14 @@ class Karlsruher:
 
         applied_action = 'read_mention'
 
-        for action in [self.advice_action, self.retweet_action]:
-            if action(tweet):
-                applied_action = action.__name__
-                break
-
-        self.brain.add_tweet(tweet, applied_action)
-        self.logger.info('%s applied %s.', tweet_log, applied_action)
+        try:
+            for action in [self.advice_action, self.retweet_action]:
+                if action(tweet):
+                    applied_action = action.__name__
+                    break
+        finally:
+            self.brain.add_tweet(tweet, applied_action)
+            self.logger.info('%s applied %s.', tweet_log, applied_action)
         return True
 
 
@@ -149,7 +139,7 @@ class Karlsruher:
         '''Take an advice.
 
         Users in Twitter list "advisors" can advice the
-        bot to either got to sleep (no more retweeting)
+        bot to either go to sleep (no more retweeting)
         or to wake up (retweet again).
 
         Implemented advices:
@@ -159,7 +149,7 @@ class Karlsruher:
                 Tweet "@BOTNAME! Wach auf!"
         '''
 
-        if str(tweet.user.id) not in self.advisors:
+        if str(tweet.user.id) not in self.brain.advisors:
             self.logger.debug('@%s is not an advisor.', tweet.user.screen_name)
             return False ## not an advisor
 
@@ -204,9 +194,9 @@ class Karlsruher:
         status = status.format(tweet.user.screen_name)
 
         self.logger.debug(
-            '%s: "%s"', 'Reply' if self.do_reply else 'Would reply', status
+            '%s: "%s"', 'Reply' if self.config.do_reply else 'Would reply', status
         )
-        if self.do_reply:
+        if self.config.do_reply:
             self.twitter.update_status(
                 in_reply_to_status_id=tweet.id,
                 status=status.format(tweet.user.screen_name)
@@ -243,11 +233,11 @@ class Karlsruher:
 
         self.logger.debug(
             '%s: @%s/%s.',
-            'Retweet' if self.do_retweet else 'Would retweet',
+            'Retweet' if self.config.do_retweet else 'Would retweet',
             tweet.user.screen_name, tweet.id
         )
 
-        if self.do_retweet:
+        if self.config.do_retweet:
             self.twitter.retweet(tweet)
 
         return True ## logically retweeted
@@ -256,6 +246,7 @@ class Karlsruher:
 
 
 class Brain:
+
     '''Provide memories.'''
 
     schema = [
@@ -284,13 +275,15 @@ class Brain:
         )''',
     ]
 
+
     def __init__(self, database):
 
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(__class__.__name__)
+
+        self.advisors = []
 
         self.connection = sqlite3.connect(database)
         self.connection.row_factory = sqlite3.Row
-
         for create_table in self.schema:
             self.connection.cursor().execute(create_table)
             self.connection.commit()
@@ -378,7 +371,9 @@ class Brain:
         cursor.execute(count, where)
         count = cursor.fetchone()['count']
 
-        self.logger.debug('Count tweets%s%s: %s.', ' by @' + user_screen_name if user_screen_name else '', ', reason=' + reason if reason else '', count)
+        self.logger.debug('Count tweets%s%s: %s.',
+                          ' by @' + user_screen_name if user_screen_name else '',
+                          ', reason=' + reason if reason else '', count)
 
         return count
 
@@ -454,6 +449,18 @@ class Brain:
         return cursor.rowcount
 
 
+    def memorize_advisors(self, source):
+        '''Store volatile list of advisors.'''
+
+        self.advisors = []
+        if callable(source):
+            for user in source():
+                self.advisors.append(str(user.id))
+        else:
+            for user in source:
+                self.advisors.append(str(user.id))
+
+
     def metrics(self):
         '''Provide simple database metrics.'''
 
@@ -477,8 +484,8 @@ class Brain:
         cursor.execute('SELECT COUNT(name) AS count FROM config')
         config_count = cursor.fetchone()['count']
 
-        return '{} tweets, {}({}) followers, {}({}) friends, {} config values'.format(
-            tweet_count, follower_count, orphan_follower_count,
+        return '{} tweets, {} advisors, {}({}) followers, {}({}) friends, {} config values'.format(
+            tweet_count, len(self.advisors), follower_count, orphan_follower_count,
             friend_count, orphan_friend_count, config_count
         )
 
@@ -486,24 +493,24 @@ class Brain:
 
 
 class CommandLine:
+
     """@Karlsruher Retweet Robot command line
 
-    $ --home=/path/to [-read|-talk|-housekeeping]
+    $ --home=/PATH [-read [-retweet -reply]|-talk|-housekeeping] [-debug]
 
   Run Modes:
     -read	Read timelines and trigger activities.
-            and add activities:
+            Add activities:
                 -retweet	Send retweets.
-                -reply		Send replies.
+                -reply		Send replies on advices.
   or:
     -talk	Combines "-read" and all activities.
 
   # Cronjob (every 5 minutes):
-  */5 * * * * /PATH/karlsruher --home=PATH -talk >/dev/null 2>&1
+  */5 * * * * /PATH/run.py --home=/PATH -talk >/dev/null 2>&1
 
 
   or:
-
     -housekeeping	Perform housekeeping tasks and exit.
         This fetches followers and friends from Twitter.
         Due to API Rate Limits, housekeeping is throttled
@@ -511,15 +518,12 @@ class CommandLine:
         Run this nightly once per day.
 
   # Cronjob (once per day):
-  3 3 * * * /PATH/karlsruher --home=PATH -housekeeping >/dev/null 2>&1
+  3 3 * * * /PATH/run.py --home=/PATH -housekeeping >/dev/null 2>&1
 
 
   or:
-
     -help	You are reading this right now.
 
-
-  Add "-debug" to raise overall logging level.
     """
 
     @staticmethod
@@ -542,7 +546,7 @@ class CommandLine:
             if not home:
                 raise Exception('Please specify "--home=PATH".')
 
-            worker = Karlsruher(Config.create(
+            worker = Karlsruher(Config(
                 home=home,
                 do_reply='-reply' in sys.argv or '-talk' in sys.argv,
                 do_retweet='-retweet' in sys.argv or '-talk' in sys.argv
@@ -565,13 +569,12 @@ class CommandLine:
 
 
 class Config:
+
     '''Provide configuration values.'''
 
-    @staticmethod
-    def create(home, do_reply=False, do_retweet=False):
+    def __init__(self, home, do_reply=False, do_retweet=False):
         '''Provide the specified config.'''
-        config = Config()
-        config.home = home
-        config.do_reply = do_reply
-        config.do_retweet = do_retweet
-        return config
+
+        self.home = home
+        self.do_reply = do_reply
+        self.do_retweet = do_retweet

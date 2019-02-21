@@ -9,8 +9,6 @@ Twitter client
 import os
 import tweepy
 
-##
-##
 class Twitter:
 
     """Proxy required API calls."""
@@ -28,6 +26,7 @@ TWITTER_ACCESS_SECRET = 'Your Access Secret'
 '''.format(credentials))
 
         # pylint: disable=import-error
+        ## because "fixed" in Karlsruher.
         from credentials import \
             TWITTER_CONSUMER_KEY, TWITTER_CONSUMER_SECRET, \
             TWITTER_ACCESS_KEY, TWITTER_ACCESS_SECRET
@@ -43,7 +42,8 @@ TWITTER_ACCESS_SECRET = 'Your Access Secret'
             wait_on_rate_limit_notify=True
         )
 
-
+    # pylint: disable=invalid-name
+    ## because Twitter named it.
     def me(self):
         '''Provide "me" user object from Twitter.'''
         return self.api.me()

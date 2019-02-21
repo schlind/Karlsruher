@@ -6,6 +6,7 @@ Common auxiliary classes
 
 '''
 
+
 from datetime import datetime
 import os
 
@@ -19,8 +20,13 @@ class StopWatch:
         self.start = datetime.now()
 
     def elapsed(self):
-        '''Return the elapsed time datetime object.'''
-        return datetime.now() - self.start
+        '''Return the elapsed time datetime object as string.'''
+        return str(datetime.now() - self.start)
+
+
+class LockException(Exception):
+
+    '''Indicate a lock.'''
 
 
 class Lock:
@@ -32,17 +38,15 @@ class Lock:
         self.path = path
 
     def is_present(self):
-        '''Indicate whether the lock is present or not.
-        Return True if the lock is present, otherwise False.
-        '''
+        '''Indicate whether the lock is present or not.'''
         return os.path.isfile(self.path)
 
     def acquire(self):
         '''Try to acquire the lock.
-        Return True on success, otherwise False.
+        Raises LockException when the lock is already locked.
         '''
         if self.is_present():
-            return False
+            raise LockException('Locked by "{}".'.format(self.path))
         open(self.path, 'a').close()
         return self.is_present()
 
