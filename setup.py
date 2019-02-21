@@ -17,13 +17,13 @@ setup(
 
     url='https://github.com/kartbot/karlsruher',  # Optional
     author='Karlsruher Retweet Robot Society',  # Optional
-    author_email='kartbot-dev@schlind.org',  # Optional
+    author_email='',  # Optional
 
     # https://pypi.org/classifiers/
     classifiers=[  # Optional
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
-        'Topic :: Twitter :: Robots',
+        'Topic :: Twitter :: Robot',
         #'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
@@ -37,10 +37,12 @@ setup(
     packages=find_packages(),  # Required
 
     python_requires='>=3.4, <4',
+
     install_requires=['tweepy==3.7'],  # Optional
+
     extras_require={  # Optional
         'dev': ['check-manifest'],
-        'test': ['coverage', 'pytest', 'pytest-cov'],
+        'test': ['coverage', 'pylint', 'pytest', 'pytest-cov'],
     },
 
     # To provide executable scripts, use entry points in preference to the
