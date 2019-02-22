@@ -42,7 +42,7 @@ class Karlsruher:
         ## of file credentials.py in class Twitter.
         sys.path.insert(0, self.config.home)
         credentials = '{}/credentials.py'.format(self.config.home)
-        self.logger.debug('Connecting to twitter "%s".', credentials)
+        self.logger.debug('Connecting to Twitter "%s".', credentials)
         self.twitter = twitter if twitter else Twitter(credentials)
         self.screen_name = self.twitter.me().screen_name
         self.logger.info('Hello, my name is @%s.', self.screen_name)
@@ -352,7 +352,7 @@ class Brain:
 
 
     def count_tweets(self, user_screen_name=None, reason=None):
-        '''Provide the count of tweets.'''
+        '''Count tweets.'''
 
         count = 'SELECT COUNT(id) AS count FROM tweets'
         where = ()
