@@ -34,11 +34,11 @@ setup(
     python_requires='>=3.4, <4',
     install_requires=['tweepy==3.7'],
     extras_require={
-        'dev': ['check-manifest', 'pylint'],
-        'test': ['coverage', 'pytest', 'pytest-cov'],
+        'dev': ['check-manifest'],
+        'test': ['pytest','pytest-cov','pylint'],
     },
     entry_points={
-        'console_scripts': ['karlsruher = karlsruher.__main__:main',]
+        'console_scripts': ['karlsruher=karlsruher.__main__:main']
     },
     project_urls={
         'Source': 'https://github.com/schlind/Karlsruher/',
