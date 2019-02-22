@@ -5,6 +5,7 @@ https://github.com/schlind/Karlsruher
 
 import contextlib
 import io
+import os
 import sys
 import tempfile
 from unittest import mock
@@ -356,6 +357,9 @@ class CommandLineTest(TestCase):
 
     run_commands = ['-housekeeping','-read','-talk']
 
+    def tearDown(self):
+        os.environ['KARLSRUHER_HOME'] = 'KARLSRUHER_HOME'
+
     @contextlib.contextmanager
     def managed_std_streams(self):
         realout, realerr = sys.stdout, sys.stderr
@@ -396,6 +400,16 @@ class CommandLineTest(TestCase):
                 self.assertEqual(1, karlsruher.CommandLine.run())
                 console = out.getvalue().strip()
                 self.assertTrue(console.startswith('Please create '), console)
+
+    @mock.patch('karlsruher.karlsruher.Twitter')
+    def test_can_run_with_KARLSRUHER_HOME(self, twitterMock):
+        os.environ['KARLSRUHER_HOME'] = tempfile.gettempdir()
+        for arg in self.run_commands:
+            with self.managed_std_streams() as (out, err):
+                sys.argv = [arg,]
+                self.assertEqual(0, karlsruher.CommandLine.run())
+                console = out.getvalue().strip()
+                self.assertTrue(console.startswith('Using KARLSRUHER_HOME'), console)
 
     @mock.patch('karlsruher.karlsruher.Twitter')
     def test_can_run(self, twitterMock):

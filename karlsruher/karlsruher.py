@@ -499,15 +499,17 @@ class CommandLine:
     $ --home=/PATH [-read [-retweet -reply]|-talk|-housekeeping] [-debug]
 
   Run Modes:
-    -read	Read timelines and trigger activities.
-            Add activities:
-                -retweet	Send retweets.
-                -reply		Send replies on advices.
+    -read
+        Read timelines and trigger activities.
+        Add activities:
+            -retweet    to retweet
+            -reply      to send public replies on advices.
   or:
-    -talk	Combines "-read" and all activities.
+    -talk
+        Combines "-read" and all activities.
 
   # Cronjob (every 5 minutes):
-  */5 * * * * /PATH/run.py --home=/PATH -talk >/dev/null 2>&1
+  */5 * * * * karlsruher --home=/PATH -talk >/dev/null 2>&1
 
 
   or:
@@ -518,11 +520,12 @@ class CommandLine:
         Run this nightly once per day.
 
   # Cronjob (once per day):
-  3 3 * * * /PATH/run.py --home=/PATH -housekeeping >/dev/null 2>&1
+  3 3 * * * karlsruher --home=/PATH -housekeeping >/dev/null 2>&1
 
 
   or:
-    -help	You are reading this right now.
+    -help
+        You are finishing this right now.
 
     """
 
@@ -543,6 +546,11 @@ class CommandLine:
             return 0
 
         try:
+
+            if not home and os.environ['KARLSRUHER_HOME'] != 'KARLSRUHER_HOME':
+                print('Using KARLSRUHER_HOME:', os.environ['KARLSRUHER_HOME'])
+                home = os.environ['KARLSRUHER_HOME']
+
             if not home:
                 raise Exception('Please specify "--home=PATH".')
 
