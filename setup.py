@@ -21,9 +21,17 @@ setup(
     # https://pypi.org/classifiers/
     classifiers=[  # Optional
         'Development Status :: 4 - Beta',
+        'Environment :: Console',
+        'Intended Audience :: Developers',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.7',
+        #TODO 'License :: Public Domain',
+        'Topic :: Artistic Software',
+        'Topic :: Internet',
+        'Operating System :: MacOS :: MacOS X',
+        'Operating System :: POSIX :: Linux',
+        'Operating System :: Unix',
     ],
     keywords='twitter retweet robot bot',
 
