@@ -402,20 +402,24 @@ class CommandLineTest(TestCase):
                 self.assertTrue(console.startswith('Please create '), console)
 
     @mock.patch('karlsruher.karlsruher.Twitter')
-    def test_can_run_with_KARLSRUHER_HOME(self, twitterMock):
-        os.environ['KARLSRUHER_HOME'] = tempfile.gettempdir()
-        for arg in self.run_commands:
-            with self.managed_std_streams() as (out, err):
-                sys.argv = [arg,]
-                self.assertEqual(0, karlsruher.CommandLine.run())
-                console = out.getvalue().strip()
-                self.assertTrue(console.startswith('Using KARLSRUHER_HOME'), console)
-
-    @mock.patch('karlsruher.karlsruher.Twitter')
-    def test_can_run(self, twitterMock):
+    def test_can_run(self, twitter_mock):
         for arg in self.run_commands:
             with self.managed_std_streams() as (out, err):
                 sys.argv = [arg, '--home=' + tempfile.gettempdir()]
                 self.assertEqual(0, karlsruher.CommandLine.run())
                 console = out.getvalue().strip()
                 self.assertEqual(0, len(console))
+
+    @mock.patch('karlsruher.karlsruher.Twitter')
+    def test_can_run_with_KARLSRUHER_HOME(self, twitter_mock):
+        original_environ = os.environ
+        try:
+            os.environ = mock.MagicMock(get=mock.MagicMock(return_value=tempfile.gettempdir()))
+            for arg in self.run_commands:
+                with self.managed_std_streams() as (out, err):
+                    sys.argv = [arg,]
+                    self.assertEqual(0, karlsruher.CommandLine.run())
+                    console = out.getvalue().strip()
+                    self.assertTrue(console.startswith('Using KARLSRUHER_HOME'), console)
+        finally:
+            os.environ = original_environ
