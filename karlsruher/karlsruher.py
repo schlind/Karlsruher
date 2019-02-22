@@ -547,9 +547,11 @@ class CommandLine:
 
         try:
 
-            if not home and os.environ['KARLSRUHER_HOME'] != 'KARLSRUHER_HOME':
-                print('Using KARLSRUHER_HOME:', os.environ['KARLSRUHER_HOME'])
-                home = os.environ['KARLSRUHER_HOME']
+            if not home:
+                KARLSRUHER_HOME = os.environ.get('KARLSRUHER_HOME')
+                if KARLSRUHER_HOME:
+                    print('Using KARLSRUHER_HOME:', KARLSRUHER_HOME)
+                    home = KARLSRUHER_HOME
 
             if not home:
                 raise Exception('Please specify "--home=PATH".')
