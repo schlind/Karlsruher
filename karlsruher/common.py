@@ -48,7 +48,6 @@ class Lock:
         if self.is_present():
             raise LockException('Locked by "{}".'.format(self.path))
         open(self.path, 'a').close()
-        return self.is_present()
 
     def release(self):
         '''Release the lock.'''

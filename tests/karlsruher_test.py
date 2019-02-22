@@ -107,7 +107,7 @@ class KarlsruherTest(TestCase):
         self.assertIsNone(self.bot.brain.get_value('retweet.disabled'))
 
     def test_housekeeping_not_when_locked(self):
-        self.assertTrue(self.bot.lock.acquire())
+        self.bot.lock.acquire()
         self.assertRaises(karlsruher.common.LockException, self.bot.house_keeping)
 
     def test_housekeeping(self):
@@ -123,7 +123,7 @@ class KarlsruherTest(TestCase):
         self.assertFalse(self.bot.read_mention(self.tweet))
 
     def test_read_mentions_not_when_locked(self):
-        self.assertTrue(self.bot.lock.acquire())
+        self.bot.lock.acquire()
         self.assertRaises(karlsruher.common.LockException, self.bot.read_mentions)
         self.assertEqual(0, self.bot.brain.count_tweets())
         self.assertEqual(0, self.bot.twitter.update_status.call_count)

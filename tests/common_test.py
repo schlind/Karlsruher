@@ -21,15 +21,15 @@ class LockTest(TestCase):
         self.assertFalse(self.lock.is_present())
 
     def test_can_acquire_and_indicate_lock(self):
-        self.assertTrue(self.lock.acquire())
+        self.lock.acquire()
         self.assertTrue(self.lock.is_present())
 
     def test_can_acquire_lock_only_once(self):
-        self.assertTrue(self.lock.acquire())
+        self.lock.acquire()
         self.assertRaises(karlsruher.common.LockException, self.lock.acquire)
 
     def test_can_release_lock(self):
-        self.assertTrue(self.lock.acquire())
+        self.lock.acquire()
         self.lock.release()
         self.assertFalse(self.lock.is_present())
 
