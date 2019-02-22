@@ -1,62 +1,46 @@
 from setuptools import setup, find_packages
 from os import path
-#from io import open
 
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-#with open(path.join(here, 'README.md'), encoding='utf-8') as f:
-#    long_description = f.read()
+with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 setup(
-    name='karlsruher',  # Required
-    version='1.0.0',  # Required
-    description='Karlsruher Retweet Robot',  # Optional
-    #long_description=long_description,  # Optional
-    #long_description_content_type='text/markdown',  # Optional (see note above)
+    name='karlsruher',
+    version='2.0-beta',
+    description='Karlsruher Retweet Robot',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
 
-    url='https://github.com/kartbot/karlsruher',  # Optional
-    author='Karlsruher Retweet Robot Society',  # Optional
-    author_email='',  # Optional
+    #url='https://github.com/kartbot/karlsruher',
+    #author='Karlsruher Retweet Robot Society',
+    #author_email='',
 
     # https://pypi.org/classifiers/
     classifiers=[  # Optional
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Topic :: Twitter :: Robot',
-        #'License :: OSI Approved :: MIT License',
+        'License :: None :: No License',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
+    keywords='twitter retweet robot bot',
 
-    keywords='twitter retweet robot bot',  # Optional
-
-    packages=find_packages(),  # Required
-
+    packages=find_packages(),
     python_requires='>=3.4, <4',
-
-    install_requires=['tweepy==3.7'],  # Optional
-
-    extras_require={  # Optional
-        'dev': ['check-manifest'],
-        'test': ['coverage', 'pylint', 'pytest', 'pytest-cov'],
+    install_requires=['tweepy==3.7'],
+    extras_require={
+        'dev': ['check-manifest', 'pylint'],
+        'test': ['coverage', 'pytest', 'pytest-cov'],
     },
-
-    # To provide executable scripts, use entry points in preference to the
-    # "scripts" keyword. Entry points provide cross-platform support and allow
-    # `pip` to create the appropriate form of executable for the target
-    # platform.
-    #
-    # For example, the following would provide a command called `sample` which
-    # executes the function `main` from this package when invoked:
-    entry_points={  # Optional
-#        'console_scripts': [ 'sample=sample:main',],
+    entry_points={
+        'console_scripts': ['karlsruher = karlsruher.__main__:main',]
     },
-
-    project_urls={  # Optional
-        'Source': 'https://github.com/kartbot/karlsruher/',
+    project_urls={
+        'Source': 'https://github.com/schlind/Karlsruher/',
     },
 )
