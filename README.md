@@ -1,5 +1,5 @@
 # Karlsruher Retweet Bot
-!?!?!? -> [karlsruher.md](karlsruher.md)
+!?!?!? -> [karlsruher.md](https://github.com/schlind/Karlsruher/blob/master/karlsruher.md)
 
 
 ## Abstract
