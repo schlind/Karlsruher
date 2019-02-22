@@ -414,7 +414,7 @@ class CommandLineTest(TestCase):
     def test_can_run_with_KARLSRUHER_HOME(self, twitter_mock):
         original_environ = os.environ
         try:
-            os.environ = mock.MagicMock(get=mock.MagicMock(return_value=tempfile.gettempdir()))
+            os.environ = mock.Mock(get=mock.MagicMock(return_value=tempfile.gettempdir()))
             for arg in self.run_commands:
                 with self.managed_std_streams() as (out, err):
                     sys.argv = [arg,]
