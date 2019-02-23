@@ -8,6 +8,8 @@ if [ -z "$(git status --porcelain)" ]; then
   echo
   echo "Clean:"
   echo "# rm -rf build dist htmlcov *.egg-info"
+  echo "# git tag -a versions/v$VERSION -m \"Tagging release v$VERSION\""
+  echo '# git push --tags'
   echo
   echo "Upload:"
   echo
