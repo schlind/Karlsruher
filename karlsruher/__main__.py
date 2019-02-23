@@ -20,8 +20,8 @@ def main():
         handlers=[logging.StreamHandler()]
     )
 
-    exit(CommandLine.run())
+    return CommandLine.run()
 
 
 if __name__ == '__main__':
-    main()
+    exit(main())
