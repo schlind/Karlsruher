@@ -36,7 +36,7 @@ class Karlsruher:
             raise Exception('Specified home "{}" not found.'.format(self.config.home))
 
         self.logger = logging.getLogger(__class__.__name__)
-        self.logger.info('@Karlsruher Retweet Robot v%s', __version__)
+        self.logger.info('Karlsruher Retweet Robot v%s', __version__)
 
         ## Connect Twitter
         ## Prepending home to path supports import
@@ -495,9 +495,12 @@ class Brain:
 
 class CommandLine:
 
-    """@Karlsruher Retweet Robot v{}
+    """Karlsruher Retweet Robot v{}
 
-# karlsruher --home=/PATH [-read [-retweet] [-reply]|-talk|-housekeeping] [-debug]
+  Usage:
+
+    karlsruher --home=/PATH [-read [-retweet] [-reply]|-talk|-housekeeping] [-debug]
+
 
   Run Modes:
     -read

@@ -1,4 +1,4 @@
-# Karlsruher Retweet Bot
+# Karlsruher Retweet Robot
 !?!?!? -> [karlsruher.md](https://github.com/schlind/Karlsruher/blob/master/karlsruher.md)
 
 
