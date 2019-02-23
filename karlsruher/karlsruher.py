@@ -20,11 +20,8 @@ class Karlsruher:
 
     '''Provide the Robot personality.'''
 
-    brain = None
-    lock = None
-    logger = None
-    twitter = None
-
+    ## class defaults required for testing/mocking.
+    brain, lock, logger, twitter = None, None, None, None
 
     # pylint: disable=too-many-instance-attributes
     ## because here is where magic happens.
