@@ -22,7 +22,7 @@ else
   echo "# git status"
   echo "# git add ."
   echo "# git commit -m \"Preparing release v$VERSION\""
-  echo "# git tag -a versions/v$VERSION -m \"Tagging release v$VERSION\""
+  echo "# git tag -a v$VERSION -m \"Tagging release v$VERSION\""
   echo '# git push --tags'
   exit 1
 fi
