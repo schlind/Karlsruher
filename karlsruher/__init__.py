@@ -6,12 +6,8 @@ Export modules
 
 '''
 
-from sys import version_info as python_version
-assert python_version >= (3,)
+__author__ = 'Sascha Schlindwein'
+__credits__ = ["syn2"]
 
-from .karlsruher import Karlsruher
-from .karlsruher import Brain
-from .karlsruher import CommandLine
-from .karlsruher import Config
-from .common import Lock
-from .common import StopWatch
+from karlsruher.common import Lock, StopWatch
+from karlsruher.karlsruher import Brain, CommandLine, Config, Karlsruher
