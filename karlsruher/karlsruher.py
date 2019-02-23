@@ -14,7 +14,7 @@ import sqlite3
 from .common import StopWatch
 from .common import Lock
 from .twitter import Twitter
-
+from .version import __version__
 
 class Karlsruher:
 
@@ -36,6 +36,7 @@ class Karlsruher:
             raise Exception('Specified home "{}" not found.'.format(self.config.home))
 
         self.logger = logging.getLogger(__class__.__name__)
+        self.logger.info('@Karlsruher Retweet Robot v%s', __version__)
 
         ## Connect Twitter
         ## Prepending home to path supports import
@@ -494,9 +495,9 @@ class Brain:
 
 class CommandLine:
 
-    """@Karlsruher Retweet Robot command line
+    """@Karlsruher Retweet Robot v{}
 
-    $ --home=/PATH [-read [-retweet -reply]|-talk|-housekeeping] [-debug]
+# karlsruher --home=/PATH [-read [-retweet] [-reply]|-talk|-housekeeping] [-debug]
 
   Run Modes:
     -read
@@ -542,7 +543,7 @@ class CommandLine:
                 task = arg
 
         if not task:
-            print(CommandLine.__doc__)
+            print(CommandLine.__doc__.format(__version__))
             return 0
 
         try:
