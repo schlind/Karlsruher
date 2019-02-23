@@ -8,3 +8,4 @@
     karlsruher/__main__.py
     karlsruher/authorize_access_token.py
     karlsruher/twitter.py
+    karlsruher/version.py
