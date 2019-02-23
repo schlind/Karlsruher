@@ -2,7 +2,7 @@
 @Karlsruher Retweet Robot
 https://github.com/schlind/Karlsruher
 
-Version.
+Version
 
 '''
 
