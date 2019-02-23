@@ -6,7 +6,7 @@ Version
 
 '''
 
-__version__ = '2.0b7'
+__version__ = '2.0b8'
 
 if __name__ == '__main__':
     print(__version__)

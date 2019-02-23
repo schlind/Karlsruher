@@ -1,0 +1,3 @@
+include README.developer.md
+include README.setup.md
+recursive-include example *
