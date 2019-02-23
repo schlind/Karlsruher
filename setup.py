@@ -6,8 +6,22 @@ Setup
 
 '''
 
-from setuptools import setup, find_packages
 from os import path
+from setuptools import setup, find_packages
+from distutils.util import convert_path
+
+
+main_ns = {}
+version_path = convert_path('karlsruher/version.py')
+with open(version_path) as version_file:
+    for line in version_file.readlines():
+        line = line.strip()
+        if line.startswith('__version__'):
+            exec(line, main_ns)
+
+if not main_ns['__version__']:
+    raise RuntimeError('Unable to read __version__ from karlsruher/version.py.')
+
 
 here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
@@ -15,7 +29,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='Karlsruher',
-    version='2.0b3',
+    version=main_ns['__version__'],
     description='Karlsruher Retweet Robot',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -38,6 +52,7 @@ setup(
         'Operating System :: POSIX :: Linux',
         'Operating System :: Unix',
     ],
+    zip_safe=True,
     keywords='twitter retweet robot bot',
     packages=find_packages(),
     python_requires='>=3.4, <4',
