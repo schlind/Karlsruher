@@ -19,7 +19,6 @@ class KarlsruherTest(TestCase):
     def setUp(self):
         self.home = tempfile.gettempdir()
         self.brain = karlsruher.Brain(':memory:')
-
         self.me = mock.Mock(id = 12345678900, screen_name = 'MockBot')
         self.advisor = mock.Mock(id = 750000, screen_name = 'advisor')
         self.follower = mock.Mock(id = 54321, screen_name = 'follower')
@@ -32,7 +31,6 @@ class KarlsruherTest(TestCase):
             user = self.unknown,
             text = self.mentionText
         )
-
         self.twitter = mock.Mock(
             me = mock.MagicMock(return_value = self.me),
             list_advisors = mock.MagicMock(return_value = [self.advisor]),
@@ -68,7 +66,6 @@ class KarlsruherTest(TestCase):
                 )
             ]),
         )
-
         self.bot = karlsruher.Karlsruher(
             config = karlsruher.Config(home=self.home),
             brain = self.brain,
@@ -369,13 +366,20 @@ class CommandLineTest(TestCase):
         finally:
             sys.stdout, sys.stderr = realout, realerr
 
+    def test_can_show_version(self):
+        with self.managed_std_streams() as (out, err):
+                sys.argv = ['-v']
+                self.assertEqual(0, karlsruher.CommandLine.run())
+                console = out.getvalue().strip()
+                self.assertTrue(console.startswith('Karlsruher '), console)
+
     def test_can_show_help(self):
         with self.managed_std_streams() as (out, err):
             for arg in ['','-help','what?']:
                 sys.argv = [arg]
                 self.assertEqual(0, karlsruher.CommandLine.run())
                 console = out.getvalue().strip()
-                self.assertTrue(console.startswith('@Karlsruher '), console)
+                self.assertTrue(console.startswith('Karlsruher '), console)
 
     def test_can_show_error_missing_home(self):
         with self.managed_std_streams() as (out, err):

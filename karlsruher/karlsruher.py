@@ -528,6 +528,10 @@ class CommandLine:
 
 
   or:
+    -v
+        Print version information.
+
+  or:
     -help
         You are finishing this right now.
 
@@ -536,6 +540,10 @@ class CommandLine:
     @staticmethod
     def run():
         '''Run it.'''
+
+        if '-v' in sys.argv:
+            print('Karlsruher Retweet Robot v{}'.format(__version__))
+            return 0
 
         home, task = None, None
 
