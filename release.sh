@@ -5,16 +5,11 @@ echo "Releasing $VERSION"
 if [ -z "$(git status --porcelain)" ]; then
   echo
   python3 ./setup.py sdist
-  echo
-  echo "Clean:"
-  echo "# rm -rf build dist htmlcov *.egg-info"
-  echo "# git tag -a v$VERSION -m \"Tagging release v$VERSION\""
-  echo '# git push --tags'
+  git tag -a v$VERSION -m "Tagging release v$VERSION"
   echo
   echo "Upload:"
-  echo
+  echo '# git push --tags'
   echo "# python3 -m twine upload --repository-url https://test.pypi.org/legacy/ dist/karlsruher-$VERSION.tar.gz"
-  echo
   echo "# python3 -m twine upload dist/karlsruher-$VERSION.tar.gz"
   echo
 else
@@ -22,7 +17,6 @@ else
   echo "# git status"
   echo "# git add ."
   echo "# git commit -m \"Preparing release v$VERSION\""
-  echo "# git tag -a v$VERSION -m \"Tagging release v$VERSION\""
-  echo '# git push --tags'
+  echo '# git push'
   exit 1
 fi
