@@ -11,3 +11,4 @@ __credits__ = ["syn2"]
 
 from karlsruher.common import Lock, StopWatch
 from karlsruher.karlsruher import Brain, CommandLine, Config, Karlsruher
+from karlsruher.twitter import Credentials, Twitter

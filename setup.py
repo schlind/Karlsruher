@@ -56,7 +56,9 @@ setup(
     keywords='twitter retweet robot bot',
     packages=find_packages(),
     python_requires='>=3.4, <4',
-    install_requires=['tweepy==3.7'],
+    install_requires=['pyaml', 'tweepy==3.7'],
+    setup_requires=['pytest-runner', 'pylint-runner'],
+    tests_require=['pytest','pytest-cov','pylint'],
     extras_require={
         'dev': ['check-manifest'],
         'test': ['pytest','pytest-cov','pylint'],

@@ -6,9 +6,6 @@ Export test modules
 
 '''
 
-from .common_test import LockTest
-from .common_test import StopWatchTest
-
-from .karlsruher_test import BrainTest
-from .karlsruher_test import CommandLineTest
-from .karlsruher_test import KarlsruherTest
+from .common_test import LockTest, StopWatchTest
+from .karlsruher_test import BrainTest, CommandLineTest, KarlsruherTest
+from .twitter_test import CredentialsTest, TwitterTest
