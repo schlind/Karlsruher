@@ -9,13 +9,16 @@ The Bot needs:
 ```
 mkdir -p $HOME/karlsruher
 ```
-* [Twitter API credentials](https://developer.twitter.com) in file *$HOME/karlsruher/credentials.py*:
+* [Twitter API credentials](https://developer.twitter.com) in file *$HOME/karlsruher/credentials.yaml*:
 ```
-echo >$HOME/karlsruher/credentials.py
-echo "TWITTER_CONSUMER_KEY = 'Your Twitter API Consumer Key'" >>$HOME/karlsruher/credentials.py
-echo "TWITTER_CONSUMER_SECRET = 'Your Twitter API Consumer Secret'" >>$HOME/karlsruher/credentials.py
-echo "TWITTER_ACCESS_KEY = 'Your Twitter API Access Key'" >>$HOME/karlsruher/credentials.py
-echo "TWITTER_ACCESS_SECRET = 'Your Twitter API Access Secret'" >>$HOME/karlsruher/credentials.py
+echo "" >$HOME/karlsruher/credentials.yaml
+echo "twitter:" >>$HOME/karlsruher/credentials.yaml
+echo "  consumer:" >>$HOME/karlsruher/credentials.yaml
+echo "    key: 'YOUR-CONSUMER-KEY'" >>$HOME/karlsruher/credentials.yaml
+echo "    secret: 'YOUR-CONSUMER-SECRET'" >>$HOME/karlsruher/credentials.yaml
+echo "  access:" >>$HOME/karlsruher/credentials.yaml
+echo "    key: 'YOUR-ACCESS-KEY'" >>$HOME/karlsruher/credentials.yaml
+echo "    secret: 'YOUR-ACCESS-SECRET'" >>$HOME/karlsruher/credentials.yaml
 ```
 ## Run
 ```
