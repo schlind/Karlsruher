@@ -5,7 +5,7 @@ https://github.com/schlind/Karlsruher
 Twitter client
 
 '''
-
+import logging
 import os
 import tweepy
 import yaml
@@ -57,6 +57,8 @@ class Twitter:
     def __init__(self, credentials_yaml_file):
         '''Use credentials from YAML file to connect to Twitter.'''
 
+        self.logger = logging.getLogger(__class__.__name__)
+
         credentials = Credentials(credentials_yaml_file)
 
         oauth = tweepy.OAuthHandler(
@@ -71,45 +73,75 @@ class Twitter:
         )
 
 
+
     # pylint: disable=invalid-name
     ## because Twitter named it.
     def me(self): # pragma: no cover
         '''Provide "me" user object from Twitter.'''
-        return self.api.me()
+        try:
+            return self.api.me()
+        except tweepy.error.TweepError:
+            self.logger.exception()
+            return None
 
     def mentions_timeline(self): # pragma: no cover
         '''Provide "mentions_timeline" from Twitter.'''
-        return self.api.mentions_timeline()
+        try:
+            return self.api.mentions_timeline()
+        except tweepy.error.TweepError:
+            self.logger.exception()
+            return None
 
     def list_advisors(self): # pragma: no cover
         '''Provide "list_members" of list "advisors" from Twitter.'''
-        self.api.list_members.pagination_mode = 'cursor'
-        for advisor in tweepy.Cursor(
-                self.api.list_members, self.me().screen_name, 'advisors'
-        ).items():
-            yield advisor
+        try:
+            self.api.list_members.pagination_mode = 'cursor'
+            for advisor in tweepy.Cursor(
+                    self.api.list_members, self.me().screen_name, 'advisors'
+            ).items():
+                yield advisor
+        except tweepy.error.TweepError:
+            self.logger.exception()
+            yield None
 
     def followers(self): # pragma: no cover
         '''Provide "followers" from Twitter.'''
-        self.api.followers.pagination_mode = 'cursor'
-        for follower in tweepy.Cursor(self.api.followers).items():
-            yield follower
+        try:
+            self.api.followers.pagination_mode = 'cursor'
+            for follower in tweepy.Cursor(self.api.followers).items():
+                yield follower
+        except tweepy.error.TweepError:
+            self.logger.exception()
+            yield None
 
     def friends(self): # pragma: no cover
         '''Provide "friends" from Twitter.'''
-        self.api.friends.pagination_mode = 'cursor'
-        for friend in tweepy.Cursor(self.api.friends).items():
-            yield friend
+        try:
+            self.api.friends.pagination_mode = 'cursor'
+            for friend in tweepy.Cursor(self.api.friends).items():
+                yield friend
+        except tweepy.error.TweepError:
+            self.logger.exception()
+            yield None
 
     def retweet(self, tweet): # pragma: no cover
         '''Send "retweet" to Twitter.'''
-        return self.api.retweet(tweet.id)
+        try:
+            return self.api.retweet(tweet.id)
+        except tweepy.error.TweepError:
+            self.logger.exception()
+            return None
+
 
     def update_status(self, status, in_reply_to_status_id=None): # pragma: no cover
         '''Send "update_status" to Twitter.'''
-        if in_reply_to_status_id:
-            return self.api.update_status(
-                in_reply_to_status_id=in_reply_to_status_id,
-                status=status
-            )
-        return self.api.update_status(status=status)
+        try:
+            if in_reply_to_status_id:
+                return self.api.update_status(
+                    in_reply_to_status_id=in_reply_to_status_id,
+                    status=status
+                )
+            return self.api.update_status(status=status)
+        except tweepy.error.TweepError:
+            self.logger.exception()
+            return None
