@@ -112,7 +112,7 @@ class Twitter:
                 yield follower
         except tweepy.error.TweepError:
             self.logger.exception()
-            return []
+            yield []
 
     def friends(self): # pragma: no cover
         '''Provide "friends" from Twitter.'''
@@ -122,7 +122,7 @@ class Twitter:
                 yield friend
         except tweepy.error.TweepError:
             self.logger.exception()
-            return []
+            yield []
 
     def retweet(self, tweet): # pragma: no cover
         '''Send "retweet" to Twitter.'''
