@@ -90,7 +90,7 @@ class Twitter:
             return self.api.mentions_timeline()
         except tweepy.error.TweepError:
             self.logger.exception()
-            return None
+            return []
 
     def list_advisors(self): # pragma: no cover
         '''Provide "list_members" of list "advisors" from Twitter.'''
@@ -102,7 +102,7 @@ class Twitter:
                 yield advisor
         except tweepy.error.TweepError:
             self.logger.exception()
-            yield None
+            yield []
 
     def followers(self): # pragma: no cover
         '''Provide "followers" from Twitter.'''
@@ -112,7 +112,7 @@ class Twitter:
                 yield follower
         except tweepy.error.TweepError:
             self.logger.exception()
-            yield None
+            return []
 
     def friends(self): # pragma: no cover
         '''Provide "friends" from Twitter.'''
@@ -122,7 +122,7 @@ class Twitter:
                 yield friend
         except tweepy.error.TweepError:
             self.logger.exception()
-            yield None
+            return []
 
     def retweet(self, tweet): # pragma: no cover
         '''Send "retweet" to Twitter.'''
