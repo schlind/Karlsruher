@@ -1,10 +1,10 @@
-'''
+"""
 @Karlsruher Retweet Robot
 https://github.com/schlind/Karlsruher
 
 Export modules
 
-'''
+"""
 
 __author__ = 'Sascha Schlindwein'
 __credits__ = ["syn2"]

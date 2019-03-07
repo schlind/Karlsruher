@@ -1,10 +1,10 @@
-'''
+"""
 @Karlsruher Retweet Robot
 https://github.com/schlind/Karlsruher
 
 Setup
 
-'''
+"""
 
 from os import path
 from setuptools import setup, find_packages
@@ -18,7 +18,6 @@ with open(version_path) as version_file:
         line = line.strip()
         if line.startswith('__version__'):
             exec(line, main_ns)
-
 if not main_ns['__version__']:
     raise RuntimeError('Unable to read __version__ from karlsruher/version.py.')
 
@@ -26,6 +25,7 @@ if not main_ns['__version__']:
 here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.setup.md'), encoding='utf-8') as f:
     long_description = f.read()
+
 
 setup(
     name='Karlsruher',
@@ -46,7 +46,7 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.7',
-        #TODO 'License :: Public Domain',
+        # TODO 'License :: Public Domain',
         'Topic :: Artistic Software',
         'Topic :: Internet',
         'Operating System :: MacOS :: MacOS X',
@@ -58,8 +58,8 @@ setup(
     packages=find_packages(),
     python_requires='>=3.4, <4',
     install_requires=['pyaml', 'tweepy==3.7'],
-#    setup_requires=['pytest-runner', 'pylint-runner'],
-#    tests_require=['pytest','pytest-cov','pylint'],
+    # setup_requires=['pytest-runner', 'pylint-runner'],
+    # tests_require=['pytest','pytest-cov','pylint'],
     extras_require={
         'dev': ['check-manifest'],
         'test': ['pytest','pytest-cov','pylint'],

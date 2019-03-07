@@ -1,10 +1,10 @@
-'''
+"""
 @Karlsruher Retweet Robot
 https://github.com/schlind/Karlsruher
 
 Core functionality classes
 
-'''
+"""
 
 import logging
 import os
@@ -18,7 +18,7 @@ from .version import __version__
 
 class Karlsruher:
 
-    '''Provide the Robot personality.'''
+    """Provide the Robot personality."""
 
     ## class defaults required for testing/mocking.
     brain, lock, logger, twitter = None, None, None, None
@@ -55,7 +55,7 @@ class Karlsruher:
 
 
     def house_keeping(self):
-        '''Perform housekeeping actions.
+        """Perform housekeeping actions.
 
         A housekeeping session imports followers and friends
         from the Twitter API. Due to rate limits this may take
@@ -63,7 +63,7 @@ class Karlsruher:
 
         During housekeeping sessions no other actions are performed.
 
-        '''
+        """
 
         self.lock.acquire()
 
@@ -78,14 +78,14 @@ class Karlsruher:
 
 
     def read_mentions(self):
-        '''Read latest mentions.
+        """Read latest mentions.
 
         A read session fetches and reads the latest tweets
         from the bot's mention timeline.
 
         During a read session no other actions are performed.
 
-        '''
+        """
 
         self.lock.acquire()
 
@@ -100,7 +100,7 @@ class Karlsruher:
 
 
     def read_mention(self, tweet):
-        '''Read a single mention and apply actions.
+        """Read a single mention and apply actions.
 
         A mention is just a tweet to be read.
         The applied action can either be "read_mention",
@@ -109,7 +109,7 @@ class Karlsruher:
         Returns True if the mention was read first
         or False if the mention was already read before.
 
-        '''
+        """
 
         tweet_log = '@{}/{}'.format(tweet.user.screen_name, tweet.id)
 
@@ -131,7 +131,7 @@ class Karlsruher:
 
 
     def advice_action(self, tweet):
-        '''Take an advice.
+        """Take an advice.
 
         Users in Twitter list "advisors" can advice the
         bot to either go to sleep (no more retweeting)
@@ -142,7 +142,7 @@ class Karlsruher:
                 Tweet "@BOTNAME! Geh schlafen!"
 
                 Tweet "@BOTNAME! Wach auf!"
-        '''
+        """
 
         if str(tweet.user.id) not in self.brain.advisors:
             self.logger.debug('@%s is not an advisor.', tweet.user.screen_name)
@@ -176,7 +176,7 @@ class Karlsruher:
 
 
     def send_reply(self, tweet, status):
-        '''Send a reply.
+        """Send a reply.
 
         Twitter want's the origin screen_name to be mentioned
         in the status text when replying.
@@ -184,7 +184,7 @@ class Karlsruher:
         A placeholder "@{}" in your status will be replaced
         with the related screen_name.
 
-        '''
+        """
 
         status = status.format(tweet.user.screen_name)
 
@@ -199,12 +199,12 @@ class Karlsruher:
 
 
     def retweet_action(self, tweet):
-        '''Retweet any public mention...
+        """Retweet any public mention...
 
             ... from followers
             ... but no replies.
 
-        '''
+        """
 
         if self.brain.get_value('retweet.disabled'):
             self.logger.debug('I am sleeping and not retweeting.')
@@ -242,32 +242,32 @@ class Karlsruher:
 
 class Brain:
 
-    '''Provide memories.'''
+    """Provide memories."""
 
     schema = [
-        '''CREATE TABLE IF NOT EXISTS config (
+        """CREATE TABLE IF NOT EXISTS config (
             name VARCHAR PRIMARY KEY,
             value VARCHAR DEFAULT NULL,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )''',
-        '''CREATE TABLE IF NOT EXISTS tweets (
+        )""",
+        """CREATE TABLE IF NOT EXISTS tweets (
             id VARCHAR PRIMARY KEY,
             user_screen_name VARCHAR NOT NULL,
             reason VARCHAR NOT NULL,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )''',
-        '''CREATE TABLE IF NOT EXISTS followers (
+        )""",
+        """CREATE TABLE IF NOT EXISTS followers (
             id VARCHAR PRIMARY KEY,
             screen_name VARCHAR NOT NULL,
             state INTEGER DEFAULT 0,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )''',
-        '''CREATE TABLE IF NOT EXISTS friends (
+        )""",
+        """CREATE TABLE IF NOT EXISTS friends (
             id VARCHAR PRIMARY KEY,
             screen_name VARCHAR NOT NULL,
             state INTEGER DEFAULT 0,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )''',
+        )""",
     ]
 
 
@@ -285,7 +285,7 @@ class Brain:
 
 
     def set_value(self, name, value=None):
-        '''Store a named value.'''
+        """Store a named value."""
 
         cursor = self.connection.cursor()
         if value is None:
@@ -302,7 +302,7 @@ class Brain:
 
 
     def get_value(self, name, default=None):
-        '''Provide a stored named value or the default if no value exists.'''
+        """Provide a stored named value or the default if no value exists."""
 
         self.logger.debug('Getting value "%s"', name)
 
@@ -324,7 +324,7 @@ class Brain:
 
 
     def has_tweet(self, tweet):
-        '''Indicate whether a tweet is stored or not.'''
+        """Indicate whether a tweet is stored or not."""
 
         cursor = self.connection.cursor()
         cursor.execute('SELECT id FROM tweets WHERE id = ?', (str(tweet.id),))
@@ -334,7 +334,7 @@ class Brain:
 
 
     def add_tweet(self, tweet, reason):
-        '''Store a tweet.'''
+        """Store a tweet."""
 
         self.logger.debug('Adding tweet "%s".', tweet.id)
         cursor = self.connection.cursor()
@@ -347,7 +347,7 @@ class Brain:
 
 
     def count_tweets(self, user_screen_name=None, reason=None):
-        '''Count tweets.'''
+        """Count tweets."""
 
         count = 'SELECT COUNT(id) AS count FROM tweets'
         where = ()
@@ -374,7 +374,7 @@ class Brain:
 
 
     def users(self, table):
-        '''Provide all users from the specified table.'''
+        """Provide all users from the specified table."""
 
         cursor = self.connection.cursor()
         cursor.execute(
@@ -386,7 +386,7 @@ class Brain:
 
 
     def has_user(self, table, user_id):
-        '''Indicate whether a user exists in the specified table or not.'''
+        """Indicate whether a user exists in the specified table or not."""
 
         cursor = self.connection.cursor()
         cursor.execute(
@@ -402,7 +402,7 @@ class Brain:
 
 
     def import_users(self, table, source):
-        '''Import users from the given source into the specified table.'''
+        """Import users from the given source into the specified table."""
 
         limbo = self.connection.cursor()
         limbo.execute('UPDATE {} SET state = 2 WHERE state = 1'.format(table))
@@ -430,7 +430,7 @@ class Brain:
 
 
     def add_user(self, table, user, state=1):
-        '''Store a user in the specified table.'''
+        """Store a user in the specified table."""
 
         self.logger.debug(
             'Adding user "%s" to "%s"', user.screen_name, table
@@ -445,7 +445,7 @@ class Brain:
 
 
     def memorize_advisors(self, source):
-        '''Store volatile list of advisors.'''
+        """Store volatile list of advisors."""
 
         self.advisors = []
         if callable(source):
@@ -457,7 +457,7 @@ class Brain:
 
 
     def metrics(self):
-        '''Provide simple database metrics.'''
+        """Provide simple database metrics."""
 
         cursor = self.connection.cursor()
 
@@ -533,7 +533,7 @@ class CommandLine:
 
     @staticmethod
     def run():
-        '''Run it.'''
+        """Run it."""
 
         if '-v' in sys.argv:
             print('Karlsruher Retweet Robot v{}'.format(__version__))
@@ -586,10 +586,10 @@ class CommandLine:
 
 class Config:
 
-    '''Provide configuration values.'''
+    """Provide configuration values."""
 
     def __init__(self, home, do_reply=False, do_retweet=False):
-        '''Provide the specified config.'''
+        """Provide the specified config."""
 
         self.home = home
         self.do_reply = do_reply

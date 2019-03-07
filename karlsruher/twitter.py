@@ -1,10 +1,11 @@
-'''
+"""
 @Karlsruher Retweet Robot
 https://github.com/schlind/Karlsruher
 
 Twitter client
 
-'''
+"""
+
 import logging
 import os
 import tweepy
@@ -13,7 +14,7 @@ import yaml
 
 class CredentialsException(Exception):
 
-    '''Indicate a problem with credentials file.'''
+    """Indicate a problem with credentials file."""
 
 
 class Credentials:
@@ -51,11 +52,11 @@ twitter:
 
 class Twitter:
 
-    '''Proxy Twitter API calls.'''
+    """Proxy Twitter API calls."""
 
 
     def __init__(self, credentials_yaml_file):
-        '''Use credentials from YAML file to connect to Twitter.'''
+        """Use credentials from YAML file to connect to Twitter."""
 
         self.logger = logging.getLogger(__class__.__name__)
 
@@ -77,7 +78,7 @@ class Twitter:
     # pylint: disable=invalid-name
     ## because Twitter named it.
     def me(self): # pragma: no cover
-        '''Provide "me" user object from Twitter.'''
+        """Provide "me" user object from Twitter."""
         try:
             return self.api.me()
         except tweepy.error.TweepError:
@@ -85,7 +86,7 @@ class Twitter:
             return None
 
     def mentions_timeline(self): # pragma: no cover
-        '''Provide "mentions_timeline" from Twitter.'''
+        """Provide "mentions_timeline" from Twitter."""
         try:
             return self.api.mentions_timeline()
         except tweepy.error.TweepError:
@@ -93,7 +94,7 @@ class Twitter:
             return []
 
     def list_advisors(self): # pragma: no cover
-        '''Provide "list_members" of list "advisors" from Twitter.'''
+        """Provide "list_members" of list "advisors" from Twitter."""
         try:
             self.api.list_members.pagination_mode = 'cursor'
             for advisor in tweepy.Cursor(
@@ -105,7 +106,7 @@ class Twitter:
             yield []
 
     def followers(self): # pragma: no cover
-        '''Provide "followers" from Twitter.'''
+        """Provide "followers" from Twitter."""
         try:
             self.api.followers.pagination_mode = 'cursor'
             for follower in tweepy.Cursor(self.api.followers).items():
@@ -115,7 +116,7 @@ class Twitter:
             yield []
 
     def friends(self): # pragma: no cover
-        '''Provide "friends" from Twitter.'''
+        """Provide "friends" from Twitter."""
         try:
             self.api.friends.pagination_mode = 'cursor'
             for friend in tweepy.Cursor(self.api.friends).items():
@@ -125,7 +126,7 @@ class Twitter:
             yield []
 
     def retweet(self, tweet): # pragma: no cover
-        '''Send "retweet" to Twitter.'''
+        """Send "retweet" to Twitter."""
         try:
             return self.api.retweet(tweet.id)
         except tweepy.error.TweepError:
@@ -134,7 +135,7 @@ class Twitter:
 
 
     def update_status(self, status, in_reply_to_status_id=None): # pragma: no cover
-        '''Send "update_status" to Twitter.'''
+        """Send "update_status" to Twitter."""
         try:
             if in_reply_to_status_id:
                 return self.api.update_status(

@@ -1,7 +1,7 @@
-'''
+"""
 @Karlsruher Retweet Robot
 https://github.com/schlind/Karlsruher
-'''
+"""
 
 import tempfile
 from unittest import TestCase

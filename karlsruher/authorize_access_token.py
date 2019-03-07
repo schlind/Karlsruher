@@ -1,11 +1,11 @@
-'''
+"""
 @Karlsruher Retweet Robot
 https://github.com/schlind/Karlsruher
 
 Manually authorize (Website + PIN) a new Access-Token
 for a given Consumer-Token via Twitter API
 
-'''
+"""
 
 import tweepy
 

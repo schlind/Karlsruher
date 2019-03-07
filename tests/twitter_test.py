@@ -1,7 +1,7 @@
-'''
+"""
 @Karlsruher Retweet Robot
 https://github.com/schlind/Karlsruher
-'''
+"""
 
 import tempfile
 from unittest import mock, TestCase
@@ -30,40 +30,40 @@ class CredentialsTest(TestCase):
     def test_can_fail_unplausible_credentials(self):
 
         probes = [
-'''
+"""
 twitter:
     consumer:
         secret: 'BAR'
     access:
         key: 'FOO'
         secret: 'BAR'
-''',
-'''
+""",
+"""
 twitter:
     consumer:
         key: 'FOO'
     access:
         key: 'FOO'
         secret: 'BAR'
-''',
-'''
+""",
+"""
 twitter:
     consumer:
         key: 'FOO'
         secret: 'BAR'
     access:
         secret: 'BAR'
-''',
-'''
+""",
+"""
     consumer:
         key: 'FOO'
         secret: 'BAR'
     access:
         key: 'FOO'
-''',
-'''
+""",
+"""
 twitter: ~
-''',
+""",
 '',
 
         ]
