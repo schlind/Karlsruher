@@ -1,18 +1,19 @@
-"""
-@Karlsruher Retweet Robot
-https://github.com/schlind/Karlsruher
+# Karlsruher Retweet Robot
+# https://github.com/schlind/Karlsruher
 
-Run it.
-
-"""
+"""Main function"""
 
 import logging
 import sys
-from karlsruher import CommandLine
+import karlsruher
 
 
 def main():
-    """karlsruher.__main__.main()"""
+    """Setup logging and run the commandline.
+
+    :return: The exit-code of the commandline
+    :rtype: int
+    """
 
     logging.basicConfig(
         level=logging.DEBUG if '-debug' in sys.argv else logging.INFO,
@@ -20,7 +21,7 @@ def main():
         handlers=[logging.StreamHandler()]
     )
 
-    return CommandLine.run()
+    return karlsruher.CommandLine.run()
 
 
 if __name__ == '__main__':

@@ -1,90 +1,64 @@
+# Karlsruher Retweet Robot
+# https://github.com/schlind/Karlsruher
+
 """
-@Karlsruher Retweet Robot
-https://github.com/schlind/Karlsruher
 """
 
 import tempfile
 from unittest import mock, TestCase
 
-import karlsruher
+from karlsruher.twitter import ApiProvider, TwittError, Twitter
 
+class ApiProviderTest(TestCase):
 
-class CredentialsTest(TestCase):
+    def test_can_fail_no_auth_file(self):
+        """Provider must fail without credentials file."""
+        provider = ApiProvider(None)
+        self.assertRaises(TwittError, provider.read_credentials)
+
+    def test_can_fail_auth_file_not_present(self):
+        """Provider must fail without credentials file."""
+        provider = ApiProvider('./not/existing/file')
+        self.assertRaises(FileNotFoundError, provider.read_credentials)
 
     def test_can_read_credentials(self):
+        """Provider must read credentials correctly."""
         yaml_file = tempfile.NamedTemporaryFile(delete=False)
-        yaml_file.write(karlsruher.Credentials.__doc__.encode())
+        yaml_file.write(ApiProvider.example_content_for_auth_yaml_file.encode())
         yaml_file.close()
-        credentials = karlsruher.Credentials(yaml_file.name)
-        self.assertEqual('YOUR-CONSUMER-KEY', credentials.consumer_key)
-        self.assertEqual('YOUR-CONSUMER-SECRET', credentials.consumer_secret)
-        self.assertEqual('YOUR-ACCESS-KEY', credentials.access_key)
-        self.assertEqual('YOUR-ACCESS-SECRET', credentials.access_secret)
+        consumer_key, consumer_secret, access_key, access_secret = ApiProvider(yaml_file.name).read_credentials()
+        self.assertEqual('YOUR-CONSUMER-KEY', consumer_key)
+        self.assertEqual('YOUR-CONSUMER-SECRET', consumer_secret)
+        self.assertEqual('YOUR-ACCESS-KEY', access_key)
+        self.assertEqual('YOUR-ACCESS-SECRET', access_secret)
 
-    def test_can_fail_credentials(self):
-        self.assertRaises(
-            karlsruher.twitter.CredentialsException,
-            karlsruher.Credentials, ''
-        )
+    def test_can_read_credentials(self):
+        """Provider must read credentials correctly."""
+        yaml_file = tempfile.NamedTemporaryFile(delete=False)
+        yaml_file.write(ApiProvider.example_content_for_auth_yaml_file.encode())
+        yaml_file.close()
+        o = ApiProvider(yaml_file.name).oauth_handler()
 
     def test_can_fail_unplausible_credentials(self):
-
-        probes = [
-"""
-twitter:
-    consumer:
-        secret: 'BAR'
-    access:
-        key: 'FOO'
-        secret: 'BAR'
-""",
-"""
-twitter:
-    consumer:
-        key: 'FOO'
-    access:
-        key: 'FOO'
-        secret: 'BAR'
-""",
-"""
-twitter:
-    consumer:
-        key: 'FOO'
-        secret: 'BAR'
-    access:
-        secret: 'BAR'
-""",
-"""
-    consumer:
-        key: 'FOO'
-        secret: 'BAR'
-    access:
-        key: 'FOO'
-""",
-"""
-twitter: ~
-""",
-'',
-
-        ]
-
-        for probe in probes:
-            with self.subTest(probe=probe):
-                yaml_file = tempfile.NamedTemporaryFile(delete=False)
-                yaml_file.write(probe.encode())
-                yaml_file.close()
-                self.assertRaises(
-                    karlsruher.twitter.CredentialsException,
-                    karlsruher.Credentials, yaml_file.name
-                )
+        """Provider must fail with invalid yaml."""
+        yaml_file = tempfile.NamedTemporaryFile(delete=False)
+        yaml_file.write("""
+            invalid 
+                yaml.
+        """.encode())
+        yaml_file.close()
+        provider = ApiProvider(yaml_file.name)
+        self.assertRaises(TwittError, provider.read_credentials)
 
 
 class TwitterTest(TestCase):
 
-    @mock.patch('tweepy.API', autospec=True)
-    def test_can_read_credentials(self, tweepy_mock):
+    @mock.patch('karlsruher.twitter.ApiProvider.api', mock.Mock())
+    @mock.patch('karlsruher.twitter.Twitter.me', mock.MagicMock(return_value=mock.Mock(id=0,screen_name='test')))
+    def test_can_reach_connected_state(self):
+        """Twitter must be connected."""
         yaml_file = tempfile.NamedTemporaryFile(delete=False)
-        yaml_file.write(karlsruher.Credentials.__doc__.encode())
+        yaml_file.write(ApiProvider.example_content_for_auth_yaml_file.encode())
         yaml_file.close()
-        karlsruher.karlsruher.Twitter(yaml_file.name)
-        self.assertEqual(1, tweepy_mock.call_count)
+        twitter = Twitter(yaml_file.name)
+        self.assertEqual('test', twitter.screen_name)

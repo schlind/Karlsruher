@@ -1,10 +1,9 @@
-'''
-@Karlsruher Retweet Robot
-https://github.com/schlind/Karlsruher
+# Karlsruher Retweet Robot
+# https://github.com/schlind/Karlsruher
 
-Version
-
-'''
+"""
+Karlsruher Retweet Robot Version
+"""
 
 __version__ = '2.0b14'
 

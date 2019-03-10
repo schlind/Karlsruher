@@ -1,26 +1,23 @@
-"""
-@Karlsruher Retweet Robot
-https://github.com/schlind/Karlsruher
-
-Twitter client
+# Karlsruher Retweet Robot
+# https://github.com/schlind/Karlsruher
 
 """
+Module providing a Twitter client
+"""
 
-import logging
 import os
 import tweepy
 import yaml
 
-
-class CredentialsException(Exception):
-
-    """Indicate a problem with credentials file."""
+from .common import KarlsruhError
 
 
-class Credentials:
-
+class ApiProvider:
     """
-twitter:
+    Provide Tweepy API.
+    """
+
+    example_content_for_auth_yaml_file = """twitter:
   consumer:
     key: 'YOUR-CONSUMER-KEY'
     secret: 'YOUR-CONSUMER-SECRET'
@@ -29,113 +26,146 @@ twitter:
     secret: 'YOUR-ACCESS-SECRET'
     """
 
-    def __init__(self, yaml_file):
+    def __init__(self, auth_yaml_file_path):
+        """
+        :param auth_yaml_file_path:
+        """
+        self.auth_yaml_file_path = auth_yaml_file_path
 
-        if yaml_file is None or yaml_file.strip() == '':
-            raise CredentialsException('Please specify yaml_file.')
-
-        if not os.path.isfile(yaml_file):
-            hint = 'Please create file "{}" with contents:{}'
-            raise CredentialsException(hint.format(yaml_file, Credentials.__doc__))
-
-        with open(yaml_file, 'r') as stream:
+    def read_credentials(self):
+        """Read the yaml.
+        :return: consumer_key, consumer_secret, access_key, access_secret
+        """
+        if self.auth_yaml_file_path is None or self.auth_yaml_file_path.strip() == '':
+            raise TwittError('Please specify yaml_file.')
+        if not os.path.isfile(self.auth_yaml_file_path):
+            raise FileNotFoundError(
+                'Please create file "{}" with contents:\n{}'.format(
+                    self.auth_yaml_file_path, ApiProvider.example_content_for_auth_yaml_file
+                )
+            )
+        with open(self.auth_yaml_file_path, 'r') as file:
             try:
-                read = yaml.load(stream)
-                self.consumer_key = read['twitter']['consumer']['key']
-                self.consumer_secret = read['twitter']['consumer']['secret']
-                self.access_key = read['twitter']['access']['key']
-                self.access_secret = read['twitter']['access']['secret']
+                read = yaml.load(file)
+                return (
+                    read['twitter']['consumer']['key'],
+                    read['twitter']['consumer']['secret'],
+                    read['twitter']['access']['key'],
+                    read['twitter']['access']['secret']
+                )
             except:
-                hint = 'Please check file "{}" for contents:{}'
-                raise CredentialsException(hint.format(yaml_file, Credentials.__doc__))
+                raise TwittError(
+                    'Please check file "{}" for proper contents:\n{}'.format(
+                        self.auth_yaml_file_path, ApiProvider.example_content_for_auth_yaml_file
+                    )
+                )
+
+    def oauth_handler(self):
+        """Provide a handler.
+        :return: The tweepy.OAuthHandler
+        :rtype: tweepy.OAuthHandler
+        """
+        consumer_key, consumer_secret, access_key, access_secret = self.read_credentials()
+        oauth_handler = tweepy.OAuthHandler(consumer_key, consumer_secret)
+        oauth_handler.set_access_token(access_key, access_secret)
+        return oauth_handler
+
+    def api(self):
+        """Provide API.
+        :return: The tweepy.API
+        :rtype: tweepy.API
+        """
+        return tweepy.API(
+            auth_handler=self.oauth_handler(),
+            compression=True,
+            wait_on_rate_limit=True,
+            wait_on_rate_limit_notify=True
+        )
 
 
 class Twitter:
+    """
+    Proxy Twitter API calls.
+    """
 
-    """Proxy Twitter API calls."""
-
-
-    def __init__(self, credentials_yaml_file):
-        """Use credentials from YAML file to connect to Twitter."""
-
-        self.logger = logging.getLogger(__class__.__name__)
-
-        credentials = Credentials(credentials_yaml_file)
-
-        oauth = tweepy.OAuthHandler(
-            credentials.consumer_key, credentials.consumer_secret
-        )
-        oauth.set_access_token(
-            credentials.access_key, credentials.access_secret
-        )
-        self.api = tweepy.API(
-            oauth, compression=True,
-            wait_on_rate_limit=True, wait_on_rate_limit_notify=True
-        )
-
-
+    def __init__(self, auth_yaml_file_path):
+        """
+        :param auth_yaml_file_path:
+        """
+        self.api = ApiProvider(auth_yaml_file_path).api()
+        self.screen_name = self.me().screen_name
 
     # pylint: disable=invalid-name
-    ## because Twitter named it.
+    # because Twitter named it that way.
     def me(self): # pragma: no cover
-        """Provide "me" user object from Twitter."""
+        """Provide "me" object from Twitter.
+        :return: The me object
+        """
         try:
             return self.api.me()
-        except tweepy.error.TweepError:
-            self.logger.exception()
-            return None
+        except tweepy.error.TweepError as tweep_error:
+            raise TwittError('API call "me":', tweep_error)
 
     def mentions_timeline(self): # pragma: no cover
-        """Provide "mentions_timeline" from Twitter."""
+        """Provide "mentions_timeline" from Twitter.
+        :return: List of tweets
+        """
         try:
             return self.api.mentions_timeline()
-        except tweepy.error.TweepError:
-            self.logger.exception()
-            return []
+        except tweepy.error.TweepError as tweep_error:
+            raise TwittError('API call "mentions_timeline":', tweep_error)
 
-    def list_advisors(self): # pragma: no cover
-        """Provide "list_members" of list "advisors" from Twitter."""
+    def list_members(self, screen_name, list_slug): # pragma: no cover
+        """Provide "list_members" of list "advisors" from Twitter.
+         :return: List of twitter users
+        """
         try:
             self.api.list_members.pagination_mode = 'cursor'
             for advisor in tweepy.Cursor(
-                    self.api.list_members, self.me().screen_name, 'advisors'
+                    self.api.list_members, screen_name, list_slug
             ).items():
                 yield advisor
-        except tweepy.error.TweepError:
-            self.logger.exception()
-            yield []
+        except tweepy.error.TweepError as tweep_error:
+            raise TwittError('API call "list_members":', tweep_error)
 
     def followers(self): # pragma: no cover
-        """Provide "followers" from Twitter."""
+        """Provide "followers" from Twitter.
+        :return: List of twitter users
+        """
         try:
             self.api.followers.pagination_mode = 'cursor'
             for follower in tweepy.Cursor(self.api.followers).items():
                 yield follower
-        except tweepy.error.TweepError:
-            self.logger.exception()
-            yield []
+        except tweepy.error.TweepError as tweep_error:
+            raise TwittError('API call "followers":', tweep_error)
 
     def friends(self): # pragma: no cover
-        """Provide "friends" from Twitter."""
+        """Provide "friends" from Twitter.
+        :return: List of twitter users
+        """
         try:
             self.api.friends.pagination_mode = 'cursor'
             for friend in tweepy.Cursor(self.api.friends).items():
                 yield friend
-        except tweepy.error.TweepError:
-            self.logger.exception()
-            yield []
+        except tweepy.error.TweepError as tweep_error:
+            raise TwittError('API call "friends":', tweep_error)
 
-    def retweet(self, tweet): # pragma: no cover
-        """Send "retweet" to Twitter."""
+    def retweet(self, tweet_id): # pragma: no cover
+        """
+        :param tweet_id: The tweet_id to retweet
+        :return: The API response
+        """
         try:
-            return self.api.retweet(tweet.id)
-        except tweepy.error.TweepError:
-            self.logger.exception()
-            return None
-
+            return self.api.retweet(tweet_id)
+        except tweepy.error.TweepError as tweep_error:
+            raise TwittError('API call "retweet":', tweep_error)
 
     def update_status(self, status, in_reply_to_status_id=None): # pragma: no cover
-        """Send "update_status" to Twitter."""
+        """
+        :param status: The status to tweet
+        :param in_reply_to_status_id: Optional, if reply
+        :return: The API response
+        """
         try:
             if in_reply_to_status_id:
                 return self.api.update_status(
@@ -143,6 +173,11 @@ class Twitter:
                     status=status
                 )
             return self.api.update_status(status=status)
-        except tweepy.error.TweepError:
-            self.logger.exception()
-            return None
+        except tweepy.error.TweepError as tweep_error:
+            raise TwittError('API call "update_status":', tweep_error)
+
+
+class TwittError(KarlsruhError):
+    """
+    Indicate a problem with Twitter.
+    """

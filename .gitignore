@@ -4,10 +4,6 @@ htmlcov/
 localhome/
 __pycache__/
 
-credentials.yaml
-credentials.yml
-credentials.py
-
 .coverage
 .eggs/
 .idea/

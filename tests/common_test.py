@@ -1,42 +1,43 @@
+# Karlsruher Retweet Robot
+# https://github.com/schlind/Karlsruher
+
 """
-@Karlsruher Retweet Robot
-https://github.com/schlind/Karlsruher
 """
 
 import tempfile
 from unittest import TestCase
 
-import karlsruher
+from karlsruher.common import Lock, LockException
+from karlsruher.common import StopWatch
 
 
 class LockTest(TestCase):
 
     def setUp(self):
-        self.lock = karlsruher.common.Lock(tempfile.gettempdir() + '/LockTest.tmp')
+        self.lock = Lock(tempfile.gettempdir() + '/LockTest.tmp')
 
     def tearDown(self):
         self.lock.release()
 
-    def test_can_indicate_lock(self):
-        self.assertFalse(self.lock.is_present())
+    def test_is_initially_unlocked(self):
+        """Lock must not be present."""
+        self.assertFalse(self.lock.is_acquired())
 
-    def test_can_acquire_and_indicate_lock(self):
+    def test_can_acquire_and_release(self):
+        """Lock must be present."""
         self.lock.acquire()
-        self.assertTrue(self.lock.is_present())
-
-    def test_can_acquire_lock_only_once(self):
-        self.lock.acquire()
-        self.assertRaises(karlsruher.common.LockException, self.lock.acquire)
-
-    def test_can_release_lock(self):
-        self.lock.acquire()
+        self.assertTrue(self.lock.is_acquired())
         self.lock.release()
-        self.assertFalse(self.lock.is_present())
+        self.assertFalse(self.lock.is_acquired())
+
+    def test_can_acquire_once_only(self):
+        """Lock must raise LockException."""
+        self.lock.acquire()
+        self.assertRaises(LockException, self.lock.acquire)
 
 
 class StopWatchTest(TestCase):
 
     def test_can_read_elapsed_time(self):
-        self.assertEqual(
-            '0:00:00.00', karlsruher.common.StopWatch().elapsed()[:10]
-        )
+        """StopWatch should produce human readable output."""
+        self.assertEqual('0:00:00.00', StopWatch().elapsed()[:10])

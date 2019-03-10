@@ -1,55 +1,75 @@
+# Karlsruher Retweet Robot
+# https://github.com/schlind/Karlsruher
 """
-@Karlsruher Retweet Robot
-https://github.com/schlind/Karlsruher
-
 Common auxiliary classes
-
 """
-
 
 from datetime import datetime
 import os
 
 
-class StopWatch:
+class KarlsruhError(Exception):
+    """
+    Indicate an error within the karlsruher package.
+    """
 
-    """Provide runtime measurement."""
+
+class StopWatch:
+    """
+    Provide runtime measurement.
+    """
 
     def __init__(self):
-        """Set the starting time to now."""
+        """
+        Create instance starting now.
+        """
         self.start = datetime.now()
 
     def elapsed(self):
-        """Return the elapsed time datetime object as string."""
+        """
+        :return: The elapsed time since start as string.
+        """
         return str(datetime.now() - self.start)
 
 
-class LockException(Exception):
-
-    """Indicate a lock."""
-
-
 class Lock:
-
-    """Provide file-based locking."""
+    """
+    Provide file-based locking.
+    """
 
     def __init__(self, path):
-        """Use the given path as lock-file."""
+        """
+        Use the given path as lock-file.
+
+        :param path: The path
+        """
         self.path = path
 
-    def is_present(self):
-        """Indicate whether the lock is present or not."""
+    def is_acquired(self):
+        """
+        Indicate whether the lock is present or not.
+        """
         return os.path.isfile(self.path)
 
     def acquire(self):
-        """Try to acquire the lock.
-        Raises LockException when the lock is already locked.
         """
-        if self.is_present():
+        Try to acquire the lock.
+        :raises: LockException when the lock is already acquired.
+        """
+        if self.is_acquired():
             raise LockException('Locked by "{}".'.format(self.path))
-        open(self.path, 'a').close()
+        # Touch the lock file:
+        open(self.path, 'w').close()
 
     def release(self):
-        """Release the lock."""
-        if self.is_present():
+        """
+        Release the lock.
+        """
+        if self.is_acquired():
             os.remove(self.path)
+
+
+class LockException(KarlsruhError):
+    """
+    Indicate/enforce a lock.
+    """

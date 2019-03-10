@@ -1,10 +1,8 @@
+# Karlsruher Retweet Robot
+# https://github.com/schlind/Karlsruher
+
 """
-@Karlsruher Retweet Robot
-https://github.com/schlind/Karlsruher
-
-Manually authorize (Website + PIN) a new Access-Token
-for a given Consumer-Token via Twitter API
-
+Manually authorize (Website + PIN) a new Access-Token for a given Consumer-Token via Twitter API
 """
 
 import tweepy
@@ -15,7 +13,7 @@ CONSUMER_SECRET = input('Your Twitter API Consumer Secret: ').strip()
 OAUTHHANDLER = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
 AUTHORIZATION_URL = OAUTHHANDLER.get_authorization_url()
 
-print('Please authorize: ', AUTHORIZATION_URL)
+print('Please authorize:', AUTHORIZATION_URL)
 VERIFIER = input('Enter PIN: ').strip()
 
 OAUTHHANDLER.get_access_token(VERIFIER)

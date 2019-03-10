@@ -1,10 +1,7 @@
-"""
-@Karlsruher Retweet Robot
-https://github.com/schlind/Karlsruher
+# Karlsruher Retweet Robot
+# https://github.com/schlind/Karlsruher
 
-Setup
-
-"""
+"""Setup"""
 
 from os import path
 from setuptools import setup, find_packages
@@ -62,7 +59,7 @@ setup(
     # tests_require=['pytest','pytest-cov','pylint'],
     extras_require={
         'dev': ['check-manifest'],
-        'test': ['pytest','pytest-cov','pylint'],
+        'test': ['pytest', 'pytest-cov', 'pylint'],
     },
     entry_points={
         'console_scripts': ['karlsruher=karlsruher.__main__:main']
