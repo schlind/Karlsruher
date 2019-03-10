@@ -1,7 +1,7 @@
 # Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 """
-Module providing classes Config and Robot
+Module providing Config and Robot
 """
 
 import logging

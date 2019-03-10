@@ -1,7 +1,7 @@
 # Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 """
-Karlsruher Twitter Robot
+Module providing the Karlsruher Twitter Robot
 """
 
 from .common import StopWatch

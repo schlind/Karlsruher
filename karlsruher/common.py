@@ -1,7 +1,7 @@
 # Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 """
-Common auxiliary classes
+Module providing common auxiliary classes
 """
 
 from datetime import datetime

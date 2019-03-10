@@ -1,7 +1,7 @@
 # Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
-
 """
+Test Config and Robot
 """
 
 import tempfile
@@ -9,7 +9,6 @@ from unittest import mock
 from unittest import TestCase
 
 from karlsruher.brain import Brain
-from karlsruher.common import LockException
 from karlsruher.robot import Config, Robot
 
 

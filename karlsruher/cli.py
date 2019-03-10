@@ -1,7 +1,7 @@
 # Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 """
-The commandline to run all the robots
+Module providing CommandLine
 """
 
 import sys

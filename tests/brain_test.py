@@ -1,7 +1,8 @@
 # Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
-
-"""Test Brain"""
+"""
+Test Brain
+"""
 
 from unittest import mock
 from unittest import TestCase

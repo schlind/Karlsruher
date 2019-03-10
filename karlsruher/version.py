@@ -1,8 +1,7 @@
 # Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
-
 """
-Karlsruher Twitter Robot Version
+Module providing Karlsruher Twitter Robot version
 """
 
 __version__ = '2.0b14'

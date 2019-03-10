@@ -1,7 +1,7 @@
 # Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 """
-*knockknock* Housekeeping!
+Module providing *knockknock* Housekeeping
 """
 
 from .common import StopWatch

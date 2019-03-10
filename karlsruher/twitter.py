@@ -1,7 +1,7 @@
 # Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 """
-Module providing a Twitter client
+Module providing Twitter client
 """
 
 import os

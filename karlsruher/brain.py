@@ -1,7 +1,7 @@
 # Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 """
-The brain of a robot
+Module providing Brain
 """
 
 import logging
