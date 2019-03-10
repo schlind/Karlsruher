@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 echo
-VERSION=$(python karlsruher/version.py)
+VERSION=$(python3 karlsruher/version.py)
 echo "Releasing $VERSION"
 if [ -z "$(git status --porcelain)" ]; then
   echo

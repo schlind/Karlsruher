@@ -1,36 +1,51 @@
 # Karlsruher Twitter Robot
 ## Setup
-Install into Python 3 library:
+Install the latest version into Python 3 library:
+```bash
+python3 -m pip install -U --user --pre karlsruher
 ```
-pip3 install -U --user --pre karlsruher
-```
-The Bot needs:
-* a *HOME* directory for database and lock files:
-```
-mkdir -p $HOME/karlsruher
-```
-* [Twitter API credentials](https://developer.twitter.com) in file *$HOME/karlsruher/auth.yaml*:
-```
+*Still in Beta mode: you need to use --pre and expect a moving target.*
+
+### The Robot needs:
++ a *ROBOT_HOME* directory:
+    + database file: *ROBOT_HOME/brain*
+    + lock file: *ROBOT_HOME/lock*
++ [Twitter API credentials](https://developer.twitter.com)
+    + in file *ROBOT_HOME/auth.yaml*
+#### Create ROBOT_HOME and auth.yaml:
+```bash
+export ROBOT_HOME=$HOME/karlsruher
+mkdir -p $ROBOT_HOME
+
+cat >$ROBOT_HOME/auth.yaml <<EOF
+# You must setup real credentials here:
 twitter:
   consumer:
     key: 'YOUR-CONSUMER-KEY'
     secret: 'YOUR-CONSUMER-SECRET'
-  access:
+  access:"
     key: 'YOUR-ACCESS-KEY'
     secret: 'YOUR-ACCESS-SECRET'
+EOF
 ```
+#### Populate the database (brain)
+The Robot needs to know its *followers*. 
+Due to Twitter API rate limits, fetching followers may take up to 1 hour per 1000 followers.
+So if you have the time, import followers:
+```bash
+export ROBOT_HOME=$HOME/karlsruher
+karlsruher --home=$ROBOT_HOME -housekeeping [-debug]
+```
+*Run this once per day, nightly!*
 
+Once the Robot has followers imported, it can start to read its mention timeline:
+```bash
+export ROBOT_HOME=$HOME/karlsruher
+karlsruher --home=$ROBOT_HOME -read [-debug]
 ```
-echo "" >$HOME/karlsruher/auth.yaml
-echo "twitter:" >>$HOME/karlsruher/auth.yaml
-echo "  consumer:" >>$HOME/karlsruher/auth.yaml
-echo "    key: 'YOUR-CONSUMER-KEY'" >>$HOME/karlsruher/auth.yaml
-echo "    secret: 'YOUR-CONSUMER-SECRET'" >>$HOME/karlsruher/auth.yaml
-echo "  access:" >>$HOME/karlsruher/auth.yaml
-echo "    key: 'YOUR-ACCESS-KEY'" >>$HOME/karlsruher/auth.yaml
-echo "    secret: 'YOUR-ACCESS-SECRET'" >>$HOME/karlsruher/auth.yaml
+If you're brave enough, go wild and let the Robot read its mention timeline *and* retweeting all appropriate tweets.
+```bash
+export ROBOT_HOME=$HOME/karlsruher
+karlsruher --home=$ROBOT_HOME -talk [-debug]
 ```
-## Run
-```
-karlsruher --home=$HOME/karlsruher -help
-```
+*Run this every 5 minutes or whatever interval you like.*
