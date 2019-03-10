@@ -25,8 +25,21 @@ class HouseKeeper(Robot):
         watch = StopWatch()
         self.logger.info('Housekeeping! This may take a while...')
         try:
-            self.brain.import_followers(self.twitter.followers)
-            self.brain.import_friends(self.twitter.friends)
+            self.import_followers(self.twitter.followers)
+            self.import_friends(self.twitter.friends)
         finally:
             self.logger.info('Housekeeping done, took %s.', watch.elapsed())
             self.lock.release()
+
+
+    def import_followers(self, callable_source):
+        """
+        :param callable_source:
+        """
+        self.brain.import_users('follower', callable_source)
+
+    def import_friends(self, callable_source):
+        """
+        :param callable_source:
+        """
+        self.brain.import_users('friend', callable_source)

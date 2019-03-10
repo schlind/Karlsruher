@@ -76,6 +76,16 @@ class Robot:
 
     # Convenience methods:
 
+    def is_follower(self, user_id):
+        """
+        Indicate whether the user with the given user_id follows.
+
+        :param user_id: The user_id to check
+        :return: True when the given user_id is a follower
+        """
+        return self.brain.has_user('follower', user_id)
+
+
     def reply(self, tweet, status):
         """
         Send a reply to the given tweet.
@@ -86,8 +96,8 @@ class Robot:
         The placeholder "%name%" in a status text will be replaced
         with the required screen_name.
 
-        :param tweet: The tweet to reply to.
-        :param status: The status (text) to reply.
+        :param tweet: The tweet to reply to
+        :param status: The status (text) to reply
         """
         # Prepare the required name to reply to:
         required_name = '@{}'.format(tweet.user.screen_name)

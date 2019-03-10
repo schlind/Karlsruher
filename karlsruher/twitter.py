@@ -29,13 +29,16 @@ twitter:
 
     def __init__(self, auth_yaml_file_path):
         """
-        :param auth_yaml_file_path:
+        Create instance with given auth.yaml file path.
+
+        :param auth_yaml_file_path: The path to the auth.yaml file
         """
         self.auth_yaml_file_path = auth_yaml_file_path
 
     def read_credentials(self):
         """
         Read the yaml.
+
         :return: consumer_key, consumer_secret, access_key, access_secret
         """
         if self.auth_yaml_file_path is None or self.auth_yaml_file_path.strip() == '':
@@ -64,9 +67,9 @@ twitter:
 
     def oauth_handler(self):
         """
-        Provide a handler.
+        Provide a tweepy.OAuthHandler.
+
         :return: The tweepy.OAuthHandler
-        :rtype: tweepy.OAuthHandler
         """
         consumer_key, consumer_secret, access_key, access_secret = self.read_credentials()
         oauth_handler = tweepy.OAuthHandler(consumer_key, consumer_secret)
@@ -75,9 +78,9 @@ twitter:
 
     def api(self):
         """
-        Provide API.
+        Provide a tweepy.API.
+
         :return: The tweepy.API
-        :rtype: tweepy.API
         """
         return tweepy.API(
             auth_handler=self.oauth_handler(),
@@ -104,7 +107,8 @@ class Twitter:
     def me(self): # pragma: no cover
         """
         Provide "me" object from Twitter.
-        :return: The me object
+
+        :return: The "me" object
         """
         try:
             return self.api.me()
@@ -114,7 +118,8 @@ class Twitter:
     def mentions_timeline(self): # pragma: no cover
         """
         Provide "mentions_timeline" from Twitter.
-        :return: List of tweets
+
+        :return: List of the latest tweets from the mentions timeline
         """
         try:
             return self.api.mentions_timeline()
@@ -123,8 +128,9 @@ class Twitter:
 
     def list_members(self, screen_name, list_slug): # pragma: no cover
         """
-        Provide "list_members" of list "advisors" from Twitter.
-         :return: List of twitter users
+        Provide "list_members" from Twitter.
+
+        :return: List of twitter users who are a member of the specified list
         """
         try:
             self.api.list_members.pagination_mode = 'cursor'
@@ -138,7 +144,8 @@ class Twitter:
     def followers(self): # pragma: no cover
         """
         Provide "followers" from Twitter.
-        :return: List of twitter users
+
+        :return: List of twitter users who follow the robot
         """
         try:
             self.api.followers.pagination_mode = 'cursor'
@@ -150,7 +157,8 @@ class Twitter:
     def friends(self): # pragma: no cover
         """
         Provide "friends" from Twitter.
-        :return: List of twitter users
+
+        :return: List of twitter users who the robot follows
         """
         try:
             self.api.friends.pagination_mode = 'cursor'
@@ -161,6 +169,8 @@ class Twitter:
 
     def retweet(self, tweet_id): # pragma: no cover
         """
+        Retweet the given tweet.
+
         :param tweet_id: The tweet_id to retweet
         :return: The API response
         """
@@ -171,14 +181,17 @@ class Twitter:
 
     def update_status(self, status, in_reply_to_status_id=None): # pragma: no cover
         """
+        Update status, send a tweet or reply.
+
         :param status: The status to tweet
-        :param in_reply_to_status_id: Optional, if reply
+        :param in_reply_to_status_id: Optional, if tweeting a reply
         :return: The API response
         """
         try:
             if in_reply_to_status_id:
                 return self.api.update_status(
                     in_reply_to_status_id=in_reply_to_status_id,
+                    auto_populate_reply_metadata=True,
                     status=status
                 )
             return self.api.update_status(status=status)

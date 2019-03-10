@@ -32,8 +32,8 @@ class ApiProviderTest(TestCase):
         self.assertEqual('YOUR-ACCESS-KEY', access_key)
         self.assertEqual('YOUR-ACCESS-SECRET', access_secret)
 
-    def test_can_read_credentials(self):
-        """Provider must read credentials correctly."""
+    def test_can_get_oauthhandler(self):
+        """Provider must provide oauth_handler."""
         yaml_file = tempfile.NamedTemporaryFile(delete=False)
         yaml_file.write(ApiProvider.yaml_content.encode())
         yaml_file.close()

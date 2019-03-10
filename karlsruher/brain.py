@@ -199,33 +199,6 @@ class Brain:
         self.connection.commit()
         return cursor.rowcount
 
-    # Aliases:
-
-    def has_follower(self, user_id):
-        """
-        :param user_id:
-        :return:
-        """
-        return self.has_user('follower', user_id)
-
-    def has_friend(self, user_id):
-        """
-        :param user_id:
-        :return:
-        """
-        return self.has_user('friend', user_id)
-
-    def import_followers(self, callable_source):
-        """
-        :param callable_source:
-        """
-        self.import_users('follower', callable_source)
-
-    def import_friends(self, callable_source):
-        """
-        :param callable_source:
-        """
-        self.import_users('friend', callable_source)
 
     # Remember tweets:
 

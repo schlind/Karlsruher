@@ -23,17 +23,17 @@ class HouseKeeperTest(RobotTestCase):
         )
 
     def test_housekeeping_imports_followers(self):
-        """The bot should have imported followers."""
+        """HouseKeeper must import followers."""
         self.bot.perform()
         self.assertEqual(3, len(self.bot.brain.users('follower')))
 
     def test_housekeeping_imports_friends(self):
-        """The bot should have imported friends."""
+        """HouseKeeper must import friends."""
         self.bot.perform()
         self.assertEqual(2, len(self.bot.brain.users('friend')))
 
     def test_housekeeping_handles_lock(self):
-        """The bot must not ignore a lock."""
+        """HouseKeeper must not ignore a lock."""
         self.bot.lock.acquire()
         self.assertRaises(LockException, self.bot.perform)
         self.assertTrue(self.bot.lock.is_acquired())

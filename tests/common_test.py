@@ -39,5 +39,5 @@ class LockTest(TestCase):
 class StopWatchTest(TestCase):
 
     def test_can_read_elapsed_time(self):
-        """StopWatch should produce human readable output."""
+        """StopWatch must produce human readable output."""
         self.assertEqual('0:00:00.00', StopWatch().elapsed()[:10])

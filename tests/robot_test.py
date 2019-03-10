@@ -169,50 +169,50 @@ class RobotTest(RobotTestCase):
             twitter=self.mock_twitter
         )
 
-    def test_robot_is_not_locked(self):
-        """The bot should not be locked."""
+    def test_not_locked(self):
+        """Robot must not be locked."""
         self.assertFalse(self.bot.lock.is_acquired())
 
-    def test_robot_performs(self):
-        """The bot should perform."""
+    def test_perform(self):
+        """Robot must perform."""
         self.assertTrue(callable(self.bot.perform))
         self.bot.perform()
 
-    def test_robot_can_get_screen_name(self):
-        """The bot should determine it's name."""
+    def test_can_get_screen_name(self):
+        """Robot must determine it's name."""
         self.assertEqual(self.mock_me.screen_name, self.bot.twitter.screen_name)
         self.assertEqual(1, self.bot.twitter.me.call_count)
 
-    def test_robot_starts_with_empty_brain(self):
-        """The bot's brain should be empty."""
+    def test_start_with_empty_brain(self):
+        """Robot brain must be empty."""
         self.assertEqual(0, self.bot.brain.count_tweets())
         self.assertEqual(0, len(self.bot.brain.users('follower')))
         self.assertEqual(0, len(self.bot.brain.users('friend')))
-        self.assertIsNone(self.bot.brain.get('retweet.disabled'))
+        self.assertIsNone(self.bot.brain.get('retweet_disabled'))
 
-    def test_robot_does_create_brain(self):
-        """The bot should create a brain."""
+    def test_create_brain(self):
+        """Robot must create a brain."""
         bot = Robot(config=self.test_config, twitter=self.mock_twitter)
         self.assertEqual(Brain, bot.brain.__class__)
 
     def test_reply_off(self):
-        """The bot must not reply."""
+        """Robot must not reply."""
         self.bot.reply(mock.Mock(id=1), 'test')
         self.assertEqual(0, self.bot.twitter.update_status.call_count)
 
     def test_reply_on(self):
-        """The bot must reply."""
+        """Robot must reply."""
         self.bot.config.do_reply = True
         self.bot.reply(mock.Mock(id=1), 'test')
         self.assertEqual(1, self.bot.twitter.update_status.call_count)
 
     def test_retweet_off(self):
-        """The bot must not retweet."""
+        """Robot must not retweet."""
         self.bot.retweet(mock.Mock(id=1))
         self.assertEqual(0, self.bot.twitter.retweet.call_count)
 
     def test_retweet_on(self):
-        """The bot must retweet."""
+        """Robot must retweet."""
         self.bot.config.do_retweet = True
         self.bot.retweet(mock.Mock(id=1))
         self.assertEqual(1, self.bot.twitter.retweet.call_count)

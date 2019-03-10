@@ -36,6 +36,7 @@ class CommandLineTest(TestCase):
             sys.stdout, sys.stderr = stdout, stderr
 
     def test_can_show_version(self):
+        """CommandLine must show a version."""
         with self.managed_io() as (out, err):
             sys.argv = ['-version']
             self.assertEqual(0, CommandLine.run())
@@ -43,6 +44,7 @@ class CommandLineTest(TestCase):
             self.assertTrue(console.startswith('Karlsruher '), console)
 
     def test_can_show_help(self):
+        """CommandLine must show help."""
         with self.managed_io() as (out, err):
             for arg in ['', '-help', 'what?']:
                 sys.argv = [arg]
@@ -51,6 +53,7 @@ class CommandLineTest(TestCase):
                 self.assertTrue(console.startswith('Karlsruher '), console)
 
     def test_can_show_error_missing_home(self):
+        """CommandLine must show error missing home."""
         with self.managed_io() as (out, err):
             for arg in self.known_task_args:
                 sys.argv = [arg]
@@ -59,6 +62,7 @@ class CommandLineTest(TestCase):
                 self.assertTrue(console.startswith('Please specify '), console)
 
     def test_can_show_error_non_existing_home(self):
+        """CommandLine must show error non existing home."""
         with self.managed_io() as (out, err):
             for arg in self.known_task_args:
                 sys.argv = [arg, '--home=/does/not/exist']
@@ -67,6 +71,7 @@ class CommandLineTest(TestCase):
                 self.assertTrue(console.startswith('Specified home '), console)
 
     def test_can_run_until_credentials_missing(self):
+        """CommandLine must show error credentials missing."""
         with self.managed_io() as (out, err):
             for arg in self.known_task_args:
                 sys.argv = [arg, '--home={}'.format(self.test_home)]
@@ -74,15 +79,14 @@ class CommandLineTest(TestCase):
                 console = out.getvalue().strip()
                 self.assertTrue(console.startswith('Please create '), console)
 
-    @mock.patch('karlsruher.twitter.ApiProvider',
-        mock.Mock(api=mock.MagicMock(return_value=mock.Mock()))
-    )
+    @mock.patch('karlsruher.twitter.ApiProvider', mock.Mock(api=mock.MagicMock(return_value=mock.Mock())))
     @mock.patch('karlsruher.twitter.Twitter.me', mock.MagicMock(return_value=mock.Mock(id=0,screen_name='test')))
     @mock.patch('karlsruher.twitter.Twitter.followers', mock.MagicMock(return_value=[]))
     @mock.patch('karlsruher.twitter.Twitter.friends', mock.MagicMock(return_value=[]))
     @mock.patch('karlsruher.twitter.Twitter.list_members', mock.MagicMock(return_value=[]))
     @mock.patch('karlsruher.twitter.Twitter.mentions_timeline', mock.MagicMock(return_value=[]))
     def test_can_run(self):
+        """CommandLine must run."""
         with self.managed_io() as (out, err):
             for arg in self.known_task_args:
                 sys.argv = [arg, '--home={}'.format(self.test_home)]

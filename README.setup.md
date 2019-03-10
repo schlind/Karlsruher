@@ -9,7 +9,7 @@ The Bot needs:
 ```
 mkdir -p $HOME/karlsruher
 ```
-* [Twitter API credentials](https://developer.twitter.com) in file *$HOME/karlsruher/credentials.yaml*:
+* [Twitter API credentials](https://developer.twitter.com) in file *$HOME/karlsruher/auth.yaml*:
 ```
 twitter:
   consumer:
@@ -21,14 +21,14 @@ twitter:
 ```
 
 ```
-echo "" >$HOME/karlsruher/credentials.yaml
-echo "twitter:" >>$HOME/karlsruher/credentials.yaml
-echo "  consumer:" >>$HOME/karlsruher/credentials.yaml
-echo "    key: 'YOUR-CONSUMER-KEY'" >>$HOME/karlsruher/credentials.yaml
-echo "    secret: 'YOUR-CONSUMER-SECRET'" >>$HOME/karlsruher/credentials.yaml
-echo "  access:" >>$HOME/karlsruher/credentials.yaml
-echo "    key: 'YOUR-ACCESS-KEY'" >>$HOME/karlsruher/credentials.yaml
-echo "    secret: 'YOUR-ACCESS-SECRET'" >>$HOME/karlsruher/credentials.yaml
+echo "" >$HOME/karlsruher/auth.yaml
+echo "twitter:" >>$HOME/karlsruher/auth.yaml
+echo "  consumer:" >>$HOME/karlsruher/auth.yaml
+echo "    key: 'YOUR-CONSUMER-KEY'" >>$HOME/karlsruher/auth.yaml
+echo "    secret: 'YOUR-CONSUMER-SECRET'" >>$HOME/karlsruher/auth.yaml
+echo "  access:" >>$HOME/karlsruher/auth.yaml
+echo "    key: 'YOUR-ACCESS-KEY'" >>$HOME/karlsruher/auth.yaml
+echo "    secret: 'YOUR-ACCESS-SECRET'" >>$HOME/karlsruher/auth.yaml
 ```
 ## Run
 ```

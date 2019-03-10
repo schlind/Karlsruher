@@ -16,9 +16,13 @@ class Karlsruher(Robot):
     # The related tweet_type in the Brain:
     tweet_type = 'mention'
 
+    # The key for Brain get/set that indicates sleeping state:
+    sleeping = 'sleeping'
+
     # Advisors:
     # A list of Twitter users who can switch
     # retweets on/off by tweeted commands.
+    advisor_list_slug = 'advisors'
     advisors = []
 
     # Language:
@@ -31,13 +35,18 @@ class Karlsruher(Robot):
         """
         self.lock.acquire()
         watch = StopWatch()
-        self.logger.info('Fetching advisors and reading mentions...')
+        self.logger.info('Fetching advisors, reading mentions...')
         try:
+
             self.advisors = []
-            for advisor in self.twitter.list_members(self.twitter.screen_name, 'advisors'):
+            for advisor in self.twitter.list_members(
+                    self.twitter.screen_name, self.advisor_list_slug
+            ):
                 self.advisors.append(str(advisor.id))
+
             for mention in self.twitter.mentions_timeline():
                 self.read_mention(mention)
+
         finally:
             self.logger.info('Reading mentions done, took %s.', watch.elapsed())
             self.lock.release()
@@ -51,7 +60,7 @@ class Karlsruher(Robot):
 
         :param tweet: The mention to be read.
         :return: True if the mention was read for the first time
-            or False if the mention was already read before.
+            or False if the mention was already read before
         """
         tweet_log = '@{}/{}'.format(tweet.user.screen_name, tweet.id)
 
@@ -83,7 +92,7 @@ class Karlsruher(Robot):
         bot to either go to sleep (no more retweeting)
         or to wake up (retweet again).
 
-        :param tweet: The advice to be read.
+        :param tweet: The advice to be read
         :return: True if an advice was taken, otherwise False
         """
         if str(tweet.user.id) not in self.advisors:
@@ -101,13 +110,13 @@ class Karlsruher(Robot):
 
         if advice.lower().startswith('geh schlafen!'):
             self.logger.info('Going to sleep for @%s.', tweet.user.screen_name)
-            self.brain.set('retweet.disabled', True)
+            self.brain.set(self.sleeping, True)
             self.reply(tweet, self.reply_advice_sleep)
             return True
 
         if advice.lower().startswith('wach auf!'):
             self.logger.info('Waking up for @%s.', tweet.user.screen_name)
-            self.brain.set('retweet.disabled', None)
+            self.brain.set(self.sleeping, None)
             self.reply(tweet, self.reply_advice_wakeup)
             return True
 
@@ -120,11 +129,11 @@ class Karlsruher(Robot):
         :param tweet: The tweet to maybe retweet
         :return: True if the retweet action applied, otherwise False
         """
-        if self.brain.get('retweet.disabled'):
+        if self.brain.get(self.sleeping):
             self.logger.debug('I am sleeping and not retweeting.')
             return False
 
-        if not self.brain.has_follower(tweet.user.id):
+        if not self.is_follower(tweet.user.id):
             self.logger.debug('@%s not following, no retweet.', tweet.user.screen_name)
             return False
 
