@@ -1,4 +1,4 @@
-# Karlsruher Retweet Robot
+# Karlsruher Twitter Robot
 ## Lifecycle for Developers
 Get source:
 ```

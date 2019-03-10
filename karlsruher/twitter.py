@@ -1,6 +1,5 @@
-# Karlsruher Retweet Robot
+# Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
-
 """
 Module providing a Twitter client
 """
@@ -17,14 +16,16 @@ class ApiProvider:
     Provide Tweepy API.
     """
 
-    example_content_for_auth_yaml_file = """twitter:
+    # Example content for HOME/auth.yaml file:
+    yaml_content = '''
+twitter:
   consumer:
     key: 'YOUR-CONSUMER-KEY'
     secret: 'YOUR-CONSUMER-SECRET'
   access:
     key: 'YOUR-ACCESS-KEY'
     secret: 'YOUR-ACCESS-SECRET'
-    """
+    '''.strip()
 
     def __init__(self, auth_yaml_file_path):
         """
@@ -33,7 +34,8 @@ class ApiProvider:
         self.auth_yaml_file_path = auth_yaml_file_path
 
     def read_credentials(self):
-        """Read the yaml.
+        """
+        Read the yaml.
         :return: consumer_key, consumer_secret, access_key, access_secret
         """
         if self.auth_yaml_file_path is None or self.auth_yaml_file_path.strip() == '':
@@ -41,7 +43,7 @@ class ApiProvider:
         if not os.path.isfile(self.auth_yaml_file_path):
             raise FileNotFoundError(
                 'Please create file "{}" with contents:\n{}'.format(
-                    self.auth_yaml_file_path, ApiProvider.example_content_for_auth_yaml_file
+                    self.auth_yaml_file_path, ApiProvider.yaml_content
                 )
             )
         with open(self.auth_yaml_file_path, 'r') as file:
@@ -56,12 +58,13 @@ class ApiProvider:
             except:
                 raise TwittError(
                     'Please check file "{}" for proper contents:\n{}'.format(
-                        self.auth_yaml_file_path, ApiProvider.example_content_for_auth_yaml_file
+                        self.auth_yaml_file_path, ApiProvider.yaml_content
                     )
                 )
 
     def oauth_handler(self):
-        """Provide a handler.
+        """
+        Provide a handler.
         :return: The tweepy.OAuthHandler
         :rtype: tweepy.OAuthHandler
         """
@@ -71,7 +74,8 @@ class ApiProvider:
         return oauth_handler
 
     def api(self):
-        """Provide API.
+        """
+        Provide API.
         :return: The tweepy.API
         :rtype: tweepy.API
         """
@@ -98,7 +102,8 @@ class Twitter:
     # pylint: disable=invalid-name
     # because Twitter named it that way.
     def me(self): # pragma: no cover
-        """Provide "me" object from Twitter.
+        """
+        Provide "me" object from Twitter.
         :return: The me object
         """
         try:
@@ -107,7 +112,8 @@ class Twitter:
             raise TwittError('API call "me":', tweep_error)
 
     def mentions_timeline(self): # pragma: no cover
-        """Provide "mentions_timeline" from Twitter.
+        """
+        Provide "mentions_timeline" from Twitter.
         :return: List of tweets
         """
         try:
@@ -116,7 +122,8 @@ class Twitter:
             raise TwittError('API call "mentions_timeline":', tweep_error)
 
     def list_members(self, screen_name, list_slug): # pragma: no cover
-        """Provide "list_members" of list "advisors" from Twitter.
+        """
+        Provide "list_members" of list "advisors" from Twitter.
          :return: List of twitter users
         """
         try:
@@ -129,7 +136,8 @@ class Twitter:
             raise TwittError('API call "list_members":', tweep_error)
 
     def followers(self): # pragma: no cover
-        """Provide "followers" from Twitter.
+        """
+        Provide "followers" from Twitter.
         :return: List of twitter users
         """
         try:
@@ -140,7 +148,8 @@ class Twitter:
             raise TwittError('API call "followers":', tweep_error)
 
     def friends(self): # pragma: no cover
-        """Provide "friends" from Twitter.
+        """
+        Provide "friends" from Twitter.
         :return: List of twitter users
         """
         try:

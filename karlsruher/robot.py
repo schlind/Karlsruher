@@ -1,4 +1,4 @@
-# Karlsruher Retweet Robot
+# Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 """
 Module providing classes Config and Robot
@@ -17,21 +17,13 @@ class Config:
     """
     Provide runtime configuration values.
     """
-
-
     def __init__(self, home, do_reply=False, do_retweet=False):
         """
-        Create instance.
+        Create instance with the given home directory.
 
         :param home: The home directory.
-        :type home: str
-
-        :param do_reply: True to send replies.
-        :type do_reply: bool
-
-        :param do_retweet: Give True to perform retweets.
-        :type do_retweet: bool
-
+        :param do_reply: Give True to send replies
+        :param do_retweet: Give True to perform retweets
         :raises NotADirectoryError: if the home directory is not present
         """
         if not os.path.isdir(home):
@@ -46,7 +38,6 @@ class Robot:
     """
     Base class for Twitter robots.
     """
-
     def __init__(self, config, brain=None, twitter=None):
         """
         Create instance with the specified config.
@@ -63,7 +54,7 @@ class Robot:
         :param twitter: Optional, a mocked Twitter instance for testing
         """
         self.logger = logging.getLogger(__class__.__name__)
-        self.logger.info('Karlsruher Retweet Robot v%s', __version__)
+        self.logger.info('Karlsruher Twitter Robot v%s', __version__)
 
         self.config = config
         self.lock = Lock('{}/lock'.format(self.config.home))
@@ -71,24 +62,28 @@ class Robot:
         self.twitter = twitter if twitter else Twitter('{}/auth.yaml'.format(self.config.home))
         self.logger.info('Hello, my name is @%s.', self.twitter.screen_name)
 
-        self.brain = brain if brain else Brain('{}/brain.sqlite3'.format(self.config.home))
+        self.brain = brain if brain else Brain('{}/brain'.format(self.config.home))
         self.logger.info('Brain metrics: %s', self.brain.metrics())
+
+    # Abstract:
 
     def perform(self):
         """
-        Whatever task a robot performs, it's meant to start here.
-        Should be implemented in subclasses.
+        Whatever task a robot performs, it's meant to start
+        here and should be implemented in subclasses.
         """
-        self.logger.debug('Not implemented here.')
+        self.logger.debug('Nothing implemented here.')
+
+    # Convenience methods:
 
     def reply(self, tweet, status):
         """
-        Send a reply.
+        Send a reply to the given tweet.
 
-        Hint: Twitter want's the origin screen_name to be mentioned
-        in the status text when replying, otherwise it raises an error.
+        Twitter want's the origin screen_name to be mentioned in
+        the status text when replying, otherwise it raises an error.
 
-        The placeholder "%name%" in a status will be replaced
+        The placeholder "%name%" in a status text will be replaced
         with the required screen_name.
 
         :param tweet: The tweet to reply to.
@@ -102,12 +97,10 @@ class Robot:
         # If still not present, prepend the required name:
         if required_name not in status:
             status = '{}: {}'.format(required_name, status)
-        # Send or swallow reply:
+
         if self.config.do_reply:
             self.logger.debug('Reply: "%s"', status)
-            response = self.twitter.update_status(
-                in_reply_to_status_id=tweet.id, status=status
-            )
+            response = self.twitter.update_status(in_reply_to_status_id=tweet.id, status=status)
             self.logger.debug('Reply response: %s', response)
         else:
             self.logger.debug('Would reply: "%s"', status)

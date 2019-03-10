@@ -1,8 +1,8 @@
-# Karlsruher Retweet Robot
+# Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 
 """
-Karlsruher Retweet Robot Version
+Karlsruher Twitter Robot Version
 """
 
 __version__ = '2.0b14'

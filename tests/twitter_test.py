@@ -1,4 +1,4 @@
-# Karlsruher Retweet Robot
+# Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 
 """
@@ -24,7 +24,7 @@ class ApiProviderTest(TestCase):
     def test_can_read_credentials(self):
         """Provider must read credentials correctly."""
         yaml_file = tempfile.NamedTemporaryFile(delete=False)
-        yaml_file.write(ApiProvider.example_content_for_auth_yaml_file.encode())
+        yaml_file.write(ApiProvider.yaml_content.encode())
         yaml_file.close()
         consumer_key, consumer_secret, access_key, access_secret = ApiProvider(yaml_file.name).read_credentials()
         self.assertEqual('YOUR-CONSUMER-KEY', consumer_key)
@@ -35,7 +35,7 @@ class ApiProviderTest(TestCase):
     def test_can_read_credentials(self):
         """Provider must read credentials correctly."""
         yaml_file = tempfile.NamedTemporaryFile(delete=False)
-        yaml_file.write(ApiProvider.example_content_for_auth_yaml_file.encode())
+        yaml_file.write(ApiProvider.yaml_content.encode())
         yaml_file.close()
         o = ApiProvider(yaml_file.name).oauth_handler()
 
@@ -58,7 +58,7 @@ class TwitterTest(TestCase):
     def test_can_reach_connected_state(self):
         """Twitter must be connected."""
         yaml_file = tempfile.NamedTemporaryFile(delete=False)
-        yaml_file.write(ApiProvider.example_content_for_auth_yaml_file.encode())
+        yaml_file.write(ApiProvider.yaml_content.encode())
         yaml_file.close()
         twitter = Twitter(yaml_file.name)
         self.assertEqual('test', twitter.screen_name)

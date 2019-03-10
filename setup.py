@@ -1,4 +1,4 @@
-# Karlsruher Retweet Robot
+# Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 
 """Setup"""
@@ -27,11 +27,11 @@ with open(path.join(here, 'README.setup.md'), encoding='utf-8') as f:
 setup(
     name='Karlsruher',
     version=main_ns['__version__'],
-    description='Karlsruher Retweet Robot',
+    description='Karlsruher Twitter Robot',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/schlind/Karlsruher',
-    author='Karlsruher Retweet Robot Society',
+    author='Karlsruher Twitter Robot Society',
     author_email='karlsruher-dev@schlind.org',
     maintainer='Sascha Schlindwein',
     maintainer_email='karlsruher-dev@schlind.org',

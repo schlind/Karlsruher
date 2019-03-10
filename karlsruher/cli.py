@@ -1,4 +1,4 @@
-# Karlsruher Retweet Robot
+# Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 """
 The commandline to run all the robots
@@ -12,9 +12,11 @@ from .robot import Config
 from .version import __version__
 
 
-HELP_TEXT = """Karlsruher Retweet Robot v{}
+HELP_TEXT = """
 
-Usage:
+Karlsruher Twitter Robot v{}
+
+Example Usage:
     karlsruher --home=/PATH [-read [-retweet] [-reply]|-talk|-housekeeping] [-debug]
 
 Options
@@ -49,7 +51,7 @@ Cronjobs:
 
 
 Cheers!
-""".format(__version__)
+""".strip().format(__version__)
 
 
 class CommandLine:
@@ -61,22 +63,27 @@ class CommandLine:
     def run():
         """
         Read command line arguments and behave accordingly.
+        :return: Shell exit code 1 in case of any error, otherwise 0
         """
         if '-version' in sys.argv:
             print(HELP_TEXT.splitlines()[0])
             return 0
+
         home, task = None, None
         for arg in sys.argv:
             if not home and arg.startswith('--home='):
                 home = arg[len('--home='):]
             if not task and arg in ['-housekeeping', '-read', '-talk']:
                 task = arg
+
         if not task or '-help' in sys.argv:
             print(HELP_TEXT)
             return 0
+
         if not home:
             print('Please specify a home directory with "--home=/PATH".')
             return 1
+
         try:
             config = Config(
                 home=home,
@@ -89,7 +96,7 @@ class CommandLine:
                 Karlsruher(config).perform()
             return 0
         # pylint: disable=broad-except
-        # because the user should see whatever exceptional reaches here.
+        # because the user should see whatever exception arrives here.
         except Exception as error_message:
             print(error_message)
             return 1

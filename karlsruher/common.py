@@ -1,4 +1,4 @@
-# Karlsruher Retweet Robot
+# Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 """
 Common auxiliary classes
@@ -27,7 +27,7 @@ class StopWatch:
 
     def elapsed(self):
         """
-        :return: The elapsed time since start as string.
+        :return: The elapsed time since creation as string.
         """
         return str(datetime.now() - self.start)
 
@@ -39,8 +39,7 @@ class Lock:
 
     def __init__(self, path):
         """
-        Use the given path as lock-file.
-
+        Use the given path as lock file.
         :param path: The path
         """
         self.path = path
@@ -48,22 +47,22 @@ class Lock:
     def is_acquired(self):
         """
         Indicate whether the lock is present or not.
+        :return: True if the lock is acquired, otherwise False
         """
         return os.path.isfile(self.path)
 
     def acquire(self):
         """
-        Try to acquire the lock.
+        Try to acquire the lock, create the lock file.
         :raises: LockException when the lock is already acquired.
         """
         if self.is_acquired():
             raise LockException('Locked by "{}".'.format(self.path))
-        # Touch the lock file:
         open(self.path, 'w').close()
 
     def release(self):
         """
-        Release the lock.
+        Release the lock, remove the lock file.
         """
         if self.is_acquired():
             os.remove(self.path)

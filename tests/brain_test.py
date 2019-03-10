@@ -1,4 +1,4 @@
-# Karlsruher Retweet Robot
+# Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 
 """Test Brain"""
@@ -42,74 +42,45 @@ class BrainTest(TestCase):
 
     def test_can_add_and_have_followers(self):
         self.assertFalse(self.brain.has_follower(self.user3.id))
-        self.assertEqual(1, self.brain.add_user('followers', self.user3))
+        self.assertEqual(1, self.brain.add_user('follower', self.user3))
         self.assertTrue(self.brain.has_follower(self.user3.id))
 
     def test_can_add_and_have_friends(self):
         self.assertFalse(self.brain.has_friend(self.user3.id))
-        self.assertEqual(1, self.brain.add_user('friends', self.user3))
+        self.assertEqual(1, self.brain.add_user('friend', self.user3))
         self.assertTrue(self.brain.has_friend(self.user3.id))
 
     def test_can_import_followers(self):
         self.brain.import_followers(lambda: [self.user1, self.user2, self.user3])
-        self.assertEqual(3, len(self.brain.users('followers')))
+        self.assertEqual(3, len(self.brain.users('follower')))
 
     def test_can_import_friends(self):
         self.brain.import_friends(lambda: [self.user1, self.user2, self.user3])
-        self.assertEqual(3, len(self.brain.users('friends')))
+        self.assertEqual(3, len(self.brain.users('friend')))
 
     def test_can_count_tweets_empty(self):
-        self.assertEqual(0, self.brain.count_tweets())
+        self.assertEqual(0, self.brain.count_tweets('test_type'))
 
     def test_can_add_and_have_tweet(self):
-        self.assertFalse(self.brain.has_tweet(self.tweet1))
-        self.assertEqual(1, self.brain.add_tweet(self.tweet1, 'test'))
-        self.assertTrue(self.brain.has_tweet(self.tweet1))
+        self.assertFalse(self.brain.has_tweet('test_type', self.tweet1.id))
+        self.assertEqual(1, self.brain.add_tweet('test_type', self.tweet1))
+        self.assertTrue(self.brain.has_tweet('test_type', self.tweet1.id))
 
     def test_not_updating_tweets(self):
-        self.assertFalse(self.brain.has_tweet(self.tweet1))
-        self.assertEqual(1, self.brain.add_tweet(self.tweet1, 'test'))
-        self.assertEqual(0, self.brain.add_tweet(self.tweet1, 'test'))
+        self.assertFalse(self.brain.has_tweet('test_type', self.tweet1.id))
+        self.assertEqual(1, self.brain.add_tweet('test_type', self.tweet1))
+        self.assertEqual(0, self.brain.add_tweet('test_type', self.tweet1))
 
     def test_can_count_tweets(self):
-        self.assertEqual(1, self.brain.add_tweet(self.tweet1, 'test'))
-        self.assertEqual(1, self.brain.add_tweet(self.tweet2, 'test'))
-        self.assertEqual(2, self.brain.count_tweets())
-        self.assertEqual(1, self.brain.add_tweet(self.tweet3, 'test'))
-        self.assertEqual(3, self.brain.count_tweets())
-
-    def test_can_count_tweets_by_reason(self):
-        self.assertEqual(1, self.brain.add_tweet(self.tweet1, 'A'))
-        self.assertEqual(1, self.brain.add_tweet(self.tweet2, 'B'))
-        self.assertEqual(1, self.brain.add_tweet(self.tweet3, 'A'))
-        self.assertEqual(2, self.brain.count_tweets(reason='A'))
-        self.assertEqual(1, self.brain.count_tweets(reason='B'))
-        self.assertEqual(0, self.brain.count_tweets(reason='?'))
-
-    def test_can_count_tweets_by_screen_name(self):
-        self.assertEqual(1, self.brain.add_tweet(self.tweet1, 'A'))
-        self.assertEqual(1, self.brain.add_tweet(self.tweet2, 'B'))
-        self.assertEqual(1, self.brain.add_tweet(self.tweet3, 'A'))
-        self.assertEqual(2, self.brain.count_tweets(user_screen_name=self.user1.screen_name))
-        self.assertEqual(1, self.brain.count_tweets(user_screen_name=self.user2.screen_name))
-        self.assertEqual(0, self.brain.count_tweets(user_screen_name='?'))
-
-    def test_can_count_tweets_by_reason_and_screen_name(self):
-        self.assertEqual(1, self.brain.add_tweet(self.tweet1, 'A'))
-        self.assertEqual(1, self.brain.add_tweet(self.tweet2, 'B'))
-        self.assertEqual(1, self.brain.add_tweet(self.tweet3, 'A'))
-        self.assertEqual(1, self.brain.count_tweets(reason='A', user_screen_name=self.user1.screen_name))
-        self.assertEqual(1, self.brain.count_tweets(reason='B', user_screen_name=self.user1.screen_name))
-        self.assertEqual(1, self.brain.count_tweets(reason='A', user_screen_name=self.user2.screen_name))
-        self.assertEqual(0, self.brain.count_tweets(reason='?', user_screen_name='?'))
+        self.assertEqual(1, self.brain.add_tweet('test_type', self.tweet1))
+        self.assertEqual(1, self.brain.add_tweet('test_type', self.tweet2))
+        self.assertEqual(2, self.brain.count_tweets('test_type'))
+        self.assertEqual(1, self.brain.add_tweet('test_type', self.tweet3))
+        self.assertEqual(3, self.brain.count_tweets('test_type'))
 
     def test_metrics_present(self):
         metrics = self.brain.metrics()
-        self.assertTrue('0' in metrics)
-        self.assertTrue('(' in metrics)
-        self.assertTrue(')' in metrics)
-        self.assertTrue('tweets, ' in metrics)
-        self.assertTrue('followers, ' in metrics)
-        self.assertTrue('friends, ' in metrics)
-        self.assertTrue('config values' in metrics)
-
+        self.assertTrue('named values' in metrics)
+        self.assertTrue('tweets' in metrics)
+        self.assertTrue('followers' in metrics)
+        self.assertTrue('friends' in metrics)

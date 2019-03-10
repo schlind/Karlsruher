@@ -1,4 +1,4 @@
-# Karlsruher Retweet Robot
+# Karlsruher Twitter Robot
 ## Abstract
 A Karlsruher Retweet Bot is a robot on Twitter that reads and retweets tweets that mention it's name.
 

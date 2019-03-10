@@ -1,4 +1,4 @@
-# Karlsruher Retweet Robot
+# Karlsruher Twitter Robot
 ## Setup
 Install into Python 3 library:
 ```

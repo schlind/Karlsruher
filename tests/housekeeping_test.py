@@ -1,4 +1,4 @@
-# Karlsruher Retweet Robot
+# Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 
 """
@@ -25,12 +25,12 @@ class HouseKeeperTest(RobotTestCase):
     def test_housekeeping_imports_followers(self):
         """The bot should have imported followers."""
         self.bot.perform()
-        self.assertEqual(3, len(self.bot.brain.users('followers')))
+        self.assertEqual(3, len(self.bot.brain.users('follower')))
 
     def test_housekeeping_imports_friends(self):
         """The bot should have imported friends."""
         self.bot.perform()
-        self.assertEqual(2, len(self.bot.brain.users('friends')))
+        self.assertEqual(2, len(self.bot.brain.users('friend')))
 
     def test_housekeeping_handles_lock(self):
         """The bot must not ignore a lock."""

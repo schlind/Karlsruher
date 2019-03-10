@@ -1,4 +1,4 @@
-# Karlsruher Retweet Robot
+# Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 
 """
@@ -186,8 +186,8 @@ class RobotTest(RobotTestCase):
     def test_robot_starts_with_empty_brain(self):
         """The bot's brain should be empty."""
         self.assertEqual(0, self.bot.brain.count_tweets())
-        self.assertEqual(0, len(self.bot.brain.users('followers')))
-        self.assertEqual(0, len(self.bot.brain.users('friends')))
+        self.assertEqual(0, len(self.bot.brain.users('follower')))
+        self.assertEqual(0, len(self.bot.brain.users('friend')))
         self.assertIsNone(self.bot.brain.get('retweet.disabled'))
 
     def test_robot_does_create_brain(self):

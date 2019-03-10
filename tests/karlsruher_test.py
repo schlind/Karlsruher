@@ -1,4 +1,4 @@
-# Karlsruher Retweet Robot
+# Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
 
 """
@@ -59,9 +59,10 @@ class KarlsruherTest(RobotTestCase):
     def test_read_mentions_timeline(self):
         self.bot.perform()
         self.assertEqual(9, self.bot.brain.count_tweets())
-        self.assertEqual(6, self.bot.brain.count_tweets(reason='read_mention'))
-        self.assertEqual(2, self.bot.brain.count_tweets(reason='advice_action'))
-        self.assertEqual(1, self.bot.brain.count_tweets(reason='retweet_action'))
+        self.assertEqual(9, self.bot.brain.count_tweets(Karlsruher.tweet_type))
+        self.assertEqual(6, self.bot.brain.count_tweets(Karlsruher.tweet_type, comment='read_mention'))
+        self.assertEqual(2, self.bot.brain.count_tweets(comment='advice_action'))
+        self.assertEqual(1, self.bot.brain.count_tweets(comment='retweet_action'))
 
 
     # Feature "advice":
