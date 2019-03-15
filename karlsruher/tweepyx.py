@@ -46,7 +46,7 @@ twitter:
             )
         with open(auth_yaml, 'r') as yaml_file:
             try:
-                read_yaml = yaml.load(yaml_file)
+                read_yaml = yaml.safe_load(yaml_file)
                 credentials = (
                     read_yaml['twitter']['consumer']['key'],
                     read_yaml['twitter']['consumer']['secret'],
