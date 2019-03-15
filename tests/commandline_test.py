@@ -12,7 +12,7 @@ import tempfile
 from unittest import mock
 from unittest import TestCase
 
-from karlsruher.cli import CommandLine
+from karlsruher.commandline import CommandLine
 
 class CommandLineTest(TestCase):
 
