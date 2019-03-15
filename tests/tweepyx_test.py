@@ -34,7 +34,14 @@ class TweepyXTest(TestCase):
 
     def test_fail_missing_auth_yaml(self):
         """Fail when auth.yaml is missing."""
-        self.assertRaises(Exception, tweepyx.API, '/does/_not_/exist', False)
+        self.assertRaises(FileNotFoundError, tweepyx.API, '/does/_not_/exist', False)
+
+    def test_fail_broken_auth_yaml(self):
+        """Fail when auth.yaml is missing."""
+        with open(self.yaml_file.name, 'w') as f:
+            f.write('''broken
+              yaml''')
+        self.assertRaises(tweepy.error.TweepError, tweepyx.API, self.yaml_file.name, False)
 
     @patch('builtins.input', mock.Mock(side_effect=['A','B','C','D']))
     def test_can_ask(self):
@@ -58,8 +65,26 @@ class TweepyXTest(TestCase):
                 "        secret: 'D'"
         ], f.readlines())
 
+    def test_overwriting_create_auth_yaml(self):
+        """Auth file not overwritten."""
+        with open(self.yaml_file.name, 'w') as f:
+            f.write('original')
+        tweepyx.create_auth_yaml(self.yaml_file.name)
+        with open(self.yaml_file.name, 'r') as f:
+            self.assertEqual(['original'], f.readlines())
+
     @patch('builtins.input', mock.Mock(side_effect=['A','B','C','D']))
     def test345(self):
         """Provider must fail with invalid yaml."""
         with managed_io() as (stdio):
             self.assertTrue(tweepyx.API(auth_yaml=self.yaml_file.name) is not None)
+
+    @patch('builtins.input', mock.Mock(side_effect=['consumerkey','consumersecret','pin']))
+    @patch('tweepy.OAuthHandler', mock.Mock())
+    def test_syn2(self):
+        with managed_io() as (stdio):
+            tweepyx.syn2()
+        console = stdio.getvalue()
+        self.assertTrue('Please authorize: ' in console)
+        self.assertTrue('Access Key: ' in console)
+        self.assertTrue('Access Secret: ' in console)
