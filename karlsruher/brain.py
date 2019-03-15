@@ -199,7 +199,6 @@ class Brain:
         self.connection.commit()
         return cursor.rowcount
 
-
     # Remember tweets:
 
     def has_tweet(self, tweet_type, tweet_id):

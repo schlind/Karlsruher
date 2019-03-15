@@ -8,6 +8,7 @@ import os
 import tweepy
 import yaml
 
+# pylint: disable=invalid-name
 class tweepyx:
     """
     Feature YAML file base authentication
@@ -70,6 +71,9 @@ twitter:
 
     @staticmethod
     def ask():
+        """
+        :return: The credentials given by the user
+        """
         print('Your Twitter API credentials:')
         return (
             input('CONSUMER KEY? ').strip(),
@@ -80,6 +84,9 @@ twitter:
 
     @staticmethod
     def create_auth_yaml(auth_yaml_file):
+        """
+        :param auth_yaml_file: The file to create
+        """
         if os.path.isfile(auth_yaml_file):
             return
         consumer_key, consumer_secret, access_key, access_secret = tweepyx.ask()
@@ -89,3 +96,19 @@ twitter:
         print('Creating file', auth_yaml_file, 'with content:\n', yaml_content)
         with open(auth_yaml_file, 'w') as yaml_file:
             yaml_file.write(str(yaml_content))
+
+    @staticmethod
+    def syn2():
+        """
+        Replaces "authorize_access_token.py" and "register.py"...
+        :return:
+        """
+        consumer_key = input('Consumer Key: ').strip()
+        consumer_secret = input('Consumer Secret: ').strip()
+        oauthhandler = tweepy.OAuthHandler(consumer_key, consumer_secret)
+        authorization_url = oauthhandler.get_authorization_url()
+        print('Please authorize:', authorization_url)
+        verifier = input('Enter PIN: ').strip()
+        oauthhandler.get_access_token(verifier)
+        print("Access Key:    '%s'" % oauthhandler.access_token.key)
+        print("Access Secret: '%s'" % oauthhandler.access_token.secret)

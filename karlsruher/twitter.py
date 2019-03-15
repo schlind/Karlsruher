@@ -4,10 +4,9 @@
 Module providing Twitter client
 """
 
+import tweepy
 
 from .common import KarlsruhError
-
-import tweepy
 from .tweepyx import tweepyx
 
 
@@ -118,4 +117,3 @@ class Twitter:
             return self.api.update_status(status=status)
         except tweepy.error.TweepError as tweep_error:
             raise KarlsruhError('API call "update_status":', tweep_error)
-

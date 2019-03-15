@@ -5,5 +5,5 @@
   omit=
     karlsruher/__init__.py
     karlsruher/__main__.py
+    karlsruher/__version__.py
     karlsruher/authorize_access_token.py
-    karlsruher/version.py
