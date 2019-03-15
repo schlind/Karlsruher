@@ -1,4 +1,6 @@
 # Karlsruher Twitter Robot
+Karlsruher is a robot on Twitter that retweets followers who mention its name.
+
 ## Setup
 Install the latest version into Python 3 library:
 ```bash

@@ -79,7 +79,8 @@ class CommandLineTest(TestCase):
                 console = out.getvalue().strip()
                 self.assertTrue(console.startswith('Please create '), console)
 
-    @mock.patch('karlsruher.twitter.ApiProvider', mock.Mock(api=mock.MagicMock(return_value=mock.Mock())))
+
+    @mock.patch('karlsruher.tweepyx.API', mock.MagicMock())
     @mock.patch('karlsruher.twitter.Twitter.me', mock.MagicMock(return_value=mock.Mock(id=0,screen_name='test')))
     @mock.patch('karlsruher.twitter.Twitter.followers', mock.MagicMock(return_value=[]))
     @mock.patch('karlsruher.twitter.Twitter.friends', mock.MagicMock(return_value=[]))

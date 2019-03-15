@@ -10,7 +10,7 @@ import os
 from .brain import Brain
 from .common import Lock
 from .twitter import Twitter
-from .version import __version__
+from .__version__ import __version__
 
 
 class Config:
@@ -84,7 +84,6 @@ class Robot:
         :return: True when the given user_id is a follower
         """
         return self.brain.has_user('follower', user_id)
-
 
     def reply(self, tweet, status):
         """

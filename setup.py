@@ -7,26 +7,28 @@ from os import path
 from setuptools import setup, find_packages
 from distutils.util import convert_path
 
+VERSION_FILE='karlsruher/__version__.py'
 
-main_ns = {}
-version_path = convert_path('karlsruher/version.py')
-with open(version_path) as version_file:
-    for line in version_file.readlines():
-        line = line.strip()
-        if line.startswith('__version__'):
-            exec(line, main_ns)
-if not main_ns['__version__']:
-    raise RuntimeError('Unable to read __version__ from karlsruher/version.py.')
+def version():
+    namespace = {}
+    with open(convert_path(VERSION_FILE)) as version_file:
+        for line in version_file.readlines():
+            line = line.strip()
+            if line.startswith('__version__'):
+                exec(line, namespace)
+    if namespace['__version__']:
+        return namespace['__version__']
+    raise RuntimeError('No __version__ in {}'.format(VERSION_FILE))
 
 
-here = path.abspath(path.dirname(__file__))
-with open(path.join(here, 'README.setup.md'), encoding='utf-8') as f:
-    long_description = f.read()
+HERE = path.abspath(path.dirname(__file__))
+with open(path.join(HERE, 'README.setup.md'), encoding='utf-8') as README:
+    long_description = README.read()
 
 
 setup(
     name='Karlsruher',
-    version=main_ns['__version__'],
+    version=version(),
     description='Karlsruher Twitter Robot',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -43,7 +45,7 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.7',
-        # TODO 'License :: Public Domain',
+        'License :: Public Domain',
         'Topic :: Artistic Software',
         'Topic :: Internet',
         'Operating System :: MacOS :: MacOS X',
@@ -51,7 +53,7 @@ setup(
         'Operating System :: Unix',
     ],
     zip_safe=True,
-    keywords='twitter retweet robot bot',
+    keywords='twitter robot bot retweet cronjob',
     packages=find_packages(),
     python_requires='>=3.4, <4',
     install_requires=['pyaml', 'tweepy==3.7'],

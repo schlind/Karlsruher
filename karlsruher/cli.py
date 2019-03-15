@@ -9,7 +9,7 @@ import sys
 from .housekeeping import HouseKeeper
 from .karlsruher import Karlsruher
 from .robot import Config
-from .version import __version__
+from .__version__ import __version__
 
 
 HELP_TEXT = """

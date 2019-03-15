@@ -4,90 +4,11 @@
 Module providing Twitter client
 """
 
-import os
-import tweepy
-import yaml
 
 from .common import KarlsruhError
 
-
-class ApiProvider:
-    """
-    Provide Tweepy API.
-    """
-
-    # Example content for HOME/auth.yaml file:
-    yaml_content = '''
-twitter:
-  consumer:
-    key: 'YOUR-CONSUMER-KEY'
-    secret: 'YOUR-CONSUMER-SECRET'
-  access:
-    key: 'YOUR-ACCESS-KEY'
-    secret: 'YOUR-ACCESS-SECRET'
-    '''.strip()
-
-    def __init__(self, auth_yaml_file_path):
-        """
-        Create instance with given auth.yaml file path.
-
-        :param auth_yaml_file_path: The path to the auth.yaml file
-        """
-        self.auth_yaml_file_path = auth_yaml_file_path
-
-    def read_credentials(self):
-        """
-        Read the yaml.
-
-        :return: consumer_key, consumer_secret, access_key, access_secret
-        """
-        if self.auth_yaml_file_path is None or self.auth_yaml_file_path.strip() == '':
-            raise TwittError('Please specify yaml_file.')
-        if not os.path.isfile(self.auth_yaml_file_path):
-            raise FileNotFoundError(
-                'Please create file "{}" with contents:\n{}'.format(
-                    self.auth_yaml_file_path, ApiProvider.yaml_content
-                )
-            )
-        with open(self.auth_yaml_file_path, 'r') as file:
-            try:
-                read = yaml.load(file)
-                return (
-                    read['twitter']['consumer']['key'],
-                    read['twitter']['consumer']['secret'],
-                    read['twitter']['access']['key'],
-                    read['twitter']['access']['secret']
-                )
-            except:
-                raise TwittError(
-                    'Please check file "{}" for proper contents:\n{}'.format(
-                        self.auth_yaml_file_path, ApiProvider.yaml_content
-                    )
-                )
-
-    def oauth_handler(self):
-        """
-        Provide a tweepy.OAuthHandler.
-
-        :return: The tweepy.OAuthHandler
-        """
-        consumer_key, consumer_secret, access_key, access_secret = self.read_credentials()
-        oauth_handler = tweepy.OAuthHandler(consumer_key, consumer_secret)
-        oauth_handler.set_access_token(access_key, access_secret)
-        return oauth_handler
-
-    def api(self):
-        """
-        Provide a tweepy.API.
-
-        :return: The tweepy.API
-        """
-        return tweepy.API(
-            auth_handler=self.oauth_handler(),
-            compression=True,
-            wait_on_rate_limit=True,
-            wait_on_rate_limit_notify=True
-        )
+import tweepy
+from .tweepyx import tweepyx
 
 
 class Twitter:
@@ -99,7 +20,7 @@ class Twitter:
         """
         :param auth_yaml_file_path:
         """
-        self.api = ApiProvider(auth_yaml_file_path).api()
+        self.api = tweepyx.API(auth_yaml_file_path, create_file=False)
         self.screen_name = self.me().screen_name
 
     # pylint: disable=invalid-name
@@ -113,7 +34,7 @@ class Twitter:
         try:
             return self.api.me()
         except tweepy.error.TweepError as tweep_error:
-            raise TwittError('API call "me":', tweep_error)
+            raise KarlsruhError('API call "me":', tweep_error)
 
     def mentions_timeline(self): # pragma: no cover
         """
@@ -124,7 +45,7 @@ class Twitter:
         try:
             return self.api.mentions_timeline()
         except tweepy.error.TweepError as tweep_error:
-            raise TwittError('API call "mentions_timeline":', tweep_error)
+            raise KarlsruhError('API call "mentions_timeline":', tweep_error)
 
     def list_members(self, screen_name, list_slug): # pragma: no cover
         """
@@ -139,7 +60,7 @@ class Twitter:
             ).items():
                 yield advisor
         except tweepy.error.TweepError as tweep_error:
-            raise TwittError('API call "list_members":', tweep_error)
+            raise KarlsruhError('API call "list_members":', tweep_error)
 
     def followers(self): # pragma: no cover
         """
@@ -152,7 +73,7 @@ class Twitter:
             for follower in tweepy.Cursor(self.api.followers).items():
                 yield follower
         except tweepy.error.TweepError as tweep_error:
-            raise TwittError('API call "followers":', tweep_error)
+            raise KarlsruhError('API call "followers":', tweep_error)
 
     def friends(self): # pragma: no cover
         """
@@ -165,7 +86,7 @@ class Twitter:
             for friend in tweepy.Cursor(self.api.friends).items():
                 yield friend
         except tweepy.error.TweepError as tweep_error:
-            raise TwittError('API call "friends":', tweep_error)
+            raise KarlsruhError('API call "friends":', tweep_error)
 
     def retweet(self, tweet_id): # pragma: no cover
         """
@@ -177,7 +98,7 @@ class Twitter:
         try:
             return self.api.retweet(tweet_id)
         except tweepy.error.TweepError as tweep_error:
-            raise TwittError('API call "retweet":', tweep_error)
+            raise KarlsruhError('API call "retweet":', tweep_error)
 
     def update_status(self, status, in_reply_to_status_id=None): # pragma: no cover
         """
@@ -196,10 +117,5 @@ class Twitter:
                 )
             return self.api.update_status(status=status)
         except tweepy.error.TweepError as tweep_error:
-            raise TwittError('API call "update_status":', tweep_error)
+            raise KarlsruhError('API call "update_status":', tweep_error)
 
-
-class TwittError(KarlsruhError):
-    """
-    Indicate a problem with Twitter.
-    """

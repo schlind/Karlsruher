@@ -13,5 +13,6 @@ from .common import KarlsruhError, Lock, LockException, StopWatch
 from .housekeeping import HouseKeeper
 from .karlsruher import Karlsruher
 from .robot import Config, Robot
-from .twitter import ApiProvider, TwittError, Twitter
-from .version import __version__
+from .tweepyx import tweepyx
+from .twitter import Twitter
+from .__version__ import __version__
