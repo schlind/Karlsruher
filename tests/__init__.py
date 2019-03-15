@@ -5,7 +5,7 @@ Expose package karlsruher test modules
 """
 
 from .brain_test import BrainTest
-from .cli_test import CommandLineTest
+from .commandline_test import CommandLineTest
 from .common_test import LockTest, StopWatchTest
 from .housekeeping_test import HouseKeeperTest
 from .karlsruher_test import  KarlsruherTest

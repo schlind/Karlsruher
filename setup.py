@@ -1,34 +1,13 @@
-# Karlsruher Twitter Robot
-# https://github.com/schlind/Karlsruher
-
-"""Setup"""
-
-from os import path
 from setuptools import setup, find_packages
-from distutils.util import convert_path
 
-VERSION_FILE='karlsruher/__version__.py'
+import karlsruher
 
-def version():
-    namespace = {}
-    with open(convert_path(VERSION_FILE)) as version_file:
-        for line in version_file.readlines():
-            line = line.strip()
-            if line.startswith('__version__'):
-                exec(line, namespace)
-    if namespace['__version__']:
-        return namespace['__version__']
-    raise RuntimeError('No __version__ in {}'.format(VERSION_FILE))
-
-
-HERE = path.abspath(path.dirname(__file__))
-with open(path.join(HERE, 'README.setup.md'), encoding='utf-8') as README:
+with open('README.setup.md', 'r', encoding='utf-8') as README:
     long_description = README.read()
-
 
 setup(
     name='Karlsruher',
-    version=version(),
+    version=karlsruher.__version__,
     description='Karlsruher Twitter Robot',
     long_description=long_description,
     long_description_content_type='text/markdown',

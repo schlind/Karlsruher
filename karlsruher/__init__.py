@@ -8,7 +8,7 @@ __author__ = 'Sascha Schlindwein'
 __credits__ = ["@syn2"]
 
 from .brain import Brain
-from .cli import CommandLine
+from .commandline import CommandLine
 from .common import KarlsruhError, Lock, LockException, StopWatch
 from .housekeeping import HouseKeeper
 from .karlsruher import Karlsruher

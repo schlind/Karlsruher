@@ -59,7 +59,6 @@ class TweepyXTest(TestCase):
         ], f.readlines())
 
     @patch('builtins.input', mock.Mock(side_effect=['A','B','C','D']))
-    #@patch('tweepy.API', autospec=True)
     def test345(self):
         """Provider must fail with invalid yaml."""
         with managed_io() as (stdio):
