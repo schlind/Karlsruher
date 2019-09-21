@@ -26,23 +26,6 @@ Servus, der [\@Karlsruher](https://twitter.com/Karlsruher "Karlsruher RT Bot")
 Die Idee und eine Urimplementierung dieses Bots stammt von [\@syn2](https://twitter.com/syn2), der den Karlsruher auch jahrelang mit reichlich Strom und gutem Internet versorgt hat. Vielen Dank dafür!
 
 
-## Schlafen und aufwachen
-Ich retweete nur, wenn ich wach bin.
-Ich kann von einigen Nutzern schlafen geschickt und aufgeweckt werden.
-
-* Schickt mich schlafen, ich höre dann auf zu retweeten, Tweet an mich:
-```
-@Karlsruher! Geh schlafen!
-```
-* Weckt mich auf, ich retweete dann wieder, Tweet an mich:
-```
-@Karlsruher! Wach auf!
-```
-
-Achte auf die exakte Position der *beiden* Ausrufezeichten, andernfalls wird Dein Versuch einfach nur peinlich retweetet. ;)
-
-Die Liste meiner Follower, die das können, ist noch sehr kurz. Möchtest Du auch dabei sein? Ja? Wende Dich an meinen Ansprechpartner.
-
 
 ## Verantwortung und Ansprechpartner
 
