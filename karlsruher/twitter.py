@@ -54,10 +54,10 @@ class Twitter:
         """
         try:
             self.api.list_members.pagination_mode = 'cursor'
-            for advisor in tweepy.Cursor(
+            for member in tweepy.Cursor(
                     self.api.list_members, screen_name, list_slug
             ).items():
-                yield advisor
+                yield member
         except tweepy.error.TweepError as tweep_error:
             raise KarlsruhError('API call "list_members":', tweep_error)
 

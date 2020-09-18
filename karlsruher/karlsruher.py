@@ -129,13 +129,6 @@ class Karlsruher(Robot):
         :param tweet: The tweet to maybe retweet
         :return: True if the retweet action applied, otherwise False
         """
-        if self.brain.get(self.sleeping):
-            self.logger.debug('I am sleeping and not retweeting.')
-            return False
-
-        if not self.is_follower(tweet.user.id):
-            self.logger.debug('@%s not following, no retweet.', tweet.user.screen_name)
-            return False
 
         if str(tweet.user.protected) == 'True':
             self.logger.debug('@%s is protected, no retweet.', tweet.user.screen_name)
@@ -143,6 +136,14 @@ class Karlsruher(Robot):
 
         if str(tweet.in_reply_to_status_id) != 'None':
             self.logger.debug('@%s wrote reply, no retweet.', tweet.user.screen_name)
+            return False
+
+        if self.brain.get(self.sleeping):
+            self.logger.debug('I am sleeping and not retweeting.')
+            return False
+
+        if not self.is_follower(tweet.user.id):
+            self.logger.debug('@%s not following, no retweet.', tweet.user.screen_name)
             return False
 
         self.logger.debug('@%s retweeting.', tweet.user.screen_name)

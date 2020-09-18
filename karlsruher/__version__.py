@@ -4,7 +4,7 @@
 Module providing Karlsruher Twitter Robot version
 """
 
-__version__ = '2.0b16'
+__version__ = '2.0b17'
 
 if __name__ == '__main__':
     print(__version__)

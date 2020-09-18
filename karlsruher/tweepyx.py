@@ -41,7 +41,7 @@ twitter:
         if not os.path.isfile(auth_yaml):
             raise FileNotFoundError(
                 'Please create file "{}" with contents:\n{}'.format(
-                    auth_yaml, tweepyx.YAML_TEMPLATE
+                    auth_yaml, tweepyx.YAML_EXAMPLE
                 )
             )
         with open(auth_yaml, 'r') as yaml_file:
