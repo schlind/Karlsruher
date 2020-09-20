@@ -2,6 +2,7 @@ build/
 dist/
 htmlcov/
 localhome/
+venv/
 __pycache__/
 
 .coverage
