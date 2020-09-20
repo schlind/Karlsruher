@@ -143,7 +143,7 @@ class Robot:
 
             if self.apply_advise(mention):
                 # Remember read advises:
-                self.remember_tweet(mention)
+                self.remember_tweet(mention.id)
 
             else:
                 mentions.append(mention)
@@ -188,10 +188,15 @@ class Robot:
         if self.act_on_twitter:
             reply_status = self.build_reply_status(tweet, text)
             self.logger.info('Reply: "%s"', reply_status)
-            response = self.twitter.update_status(in_reply_to_status_id=tweet.id, text=reply_status)
-            self.logger.debug('Reply response: %s', response)
+            try:
+                response = self.twitter.update_status(
+                    in_reply_to_status_id=tweet.id, text=reply_status)
+                self.logger.debug('Reply response: %s', response)
+            # pylint: disable=broad-except
+            except Exception as error:
+                self.logger.error(error)
         else:
-            self.logger.info('I HAVE NOT replied on Twitter!')
+                self.logger.info('I HAVE NOT replied on Twitter!')
 
     def build_reply_status(self, tweet, text):
         '''
@@ -204,6 +209,6 @@ class Robot:
         '''
         required_name = '@{}'.format(tweet.user.screen_name)
         if required_name not in text:
-            self.logger.debug('Adding @%s to text"', required_name)
+            self.logger.debug('Adding %s to text"', required_name)
             text = '{0} {1}'.format(required_name, text)
         return text
