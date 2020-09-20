@@ -87,9 +87,9 @@ class Twitter:
                 return self.api.update_status(
                     in_reply_to_status_id=in_reply_to_status_id,
                     auto_populate_reply_metadata=True,
-                    text=text
+                    status=text
                 )
-            return self.api.update_status(text=text)
+            return self.api.update_status(status=text)
         except tweepy.error.TweepError as tweep_error:
             # pylint: disable=raise-missing-from
             raise KarlsruherException('API call "update_status":', tweep_error)
