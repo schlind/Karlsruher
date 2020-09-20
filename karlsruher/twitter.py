@@ -2,36 +2,35 @@
 Twitter API Client
 '''
 
+import logging
 import tweepy
 
-from .common import KarlsruherException
 from .tweepyx import tweepyx
 
-class Twitter:
+class Twitter: # pragma: no cover
     '''Proxy for tweepy'''
 
     def __init__(self, auth_yaml_file_path):
         ''':param auth_yaml_file_path: The credentials file'''
+        self.logger = logging.getLogger(__class__.__name__)
         self.api = tweepyx.API(auth_yaml_file_path, create_file_on_demand=False)
         self.screen_name = self.me().screen_name
 
     # pylint: disable=invalid-name
     # because Twitter named it that way
-    def me(self): # pragma: no cover
+    def me(self):
         ''':return: The "me" object from Twitter'''
         try:
             return self.api.me()
         except tweepy.error.TweepError as tweep_error:
-            # pylint: disable=raise-missing-from
-            raise KarlsruherException('API call "me":', tweep_error)
+            self.logger.error(tweep_error)
 
     def mentions_timeline(self): # pragma: no cover
         ''':return: The mentions timeline'''
         try:
             return self.api.mentions_timeline()
         except tweepy.error.TweepError as tweep_error:
-            # pylint: disable=raise-missing-from
-            raise KarlsruherException('API call "mentions_timeline":', tweep_error)
+            self.logger.error(tweep_error)
 
     def list_members(self, screen_name, list_slug): # pragma: no cover
         ''':return: List of members of the specified list'''
@@ -42,8 +41,7 @@ class Twitter:
             ).items():
                 yield member
         except tweepy.error.TweepError as tweep_error:
-            # pylint: disable=raise-missing-from
-            raise KarlsruherException('API call "list_members":', tweep_error)
+            self.logger.error(tweep_error)
 
     def follower_ids(self): # pragma: no cover
         ''':return: List of twitter user_ids who follow the robot'''
@@ -52,8 +50,7 @@ class Twitter:
             for follower_id in tweepy.Cursor(self.api.followers_ids).items():
                 yield follower_id
         except tweepy.error.TweepError as tweep_error:
-            # pylint: disable=raise-missing-from
-            raise KarlsruherException('API call "follower_ids":', tweep_error)
+            self.logger.error(tweep_error)
 
     def friend_ids(self): # pragma: no cover
         ''':return: List of twitter user_ids who the robot follows'''
@@ -62,8 +59,7 @@ class Twitter:
             for friend_id in tweepy.Cursor(self.api.friends_ids).items():
                 yield friend_id
         except tweepy.error.TweepError as tweep_error:
-            # pylint: disable=raise-missing-from
-            raise KarlsruherException('API call "friends_ids":', tweep_error)
+            self.logger.error(tweep_error)
 
     def retweet(self, tweet_id): # pragma: no cover
         '''
@@ -73,8 +69,7 @@ class Twitter:
         try:
             return self.api.retweet(tweet_id)
         except tweepy.error.TweepError as tweep_error:
-            # pylint: disable=raise-missing-from
-            raise KarlsruherException('API call "retweet":', tweep_error)
+            self.logger.error(tweep_error)
 
     def update_status(self, text, in_reply_to_status_id=None): # pragma: no cover
         '''
@@ -91,5 +86,4 @@ class Twitter:
                 )
             return self.api.update_status(status=text)
         except tweepy.error.TweepError as tweep_error:
-            # pylint: disable=raise-missing-from
-            raise KarlsruherException('API call "update_status":', tweep_error)
+            self.logger.error(tweep_error)

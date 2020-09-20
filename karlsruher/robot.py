@@ -22,11 +22,11 @@ class Robot:
 
 
     def __init__(self, home, brain=None, twitter=None):
-        """
+        '''
         :param home: The home directory
         :param brain: Optional, a mocked Brain instance for testing
         :param twitter: Optional, a mocked Twitter instance for testing
-        """
+        '''
         if not os.path.isdir(home):
             raise NotADirectoryError('Specified home "{}" not found.'.format(home))
 
@@ -159,26 +159,31 @@ class Robot:
         if str(mention.user.id) not in self.advisors:
             self.logger.debug('@%s is not an advisor.', mention.user.screen_name)
             return False
+
         trigger = '@{}!'.format(self.twitter.screen_name.lower())
         if not mention.text.lower().startswith(trigger):
-            self.logger.debug('@%s gave no advice trigger.', mention.user.screen_name)
+            self.logger.debug('@%s gave no advise trigger.', mention.user.screen_name)
             return False
-        advice = mention.text[len(trigger):].strip()
-        if advice.lower().startswith('START'.lower()):
-            self.logger.debug('@%s gave advice START.', mention.user.screen_name)
+
+        advise = mention.text[len(trigger):].strip()
+
+        if advise.lower().startswith('START'.lower()):
+            self.logger.debug('@%s gave advise START.', mention.user.screen_name)
             self.wake_up(mention.user.screen_name)
             try:
                 self.reply(mention, 'Ok, ich starte... (auto-reply)')
             finally:
                 return True
-        if advice.lower().startswith('STOP'.lower()):
-            self.logger.debug('@%s gave advice STOP.', mention.user.screen_name)
+
+        if advise.lower().startswith('STOP'.lower()):
+            self.logger.debug('@%s gave advise STOP.', mention.user.screen_name)
             self.go_sleep(mention.user.screen_name)
             try:
                 self.reply(mention, 'Ok, ich stoppe... (auto-reply)')
             finally:
                 return True
-        self.logger.debug('@%s gave no advice.', mention.user.screen_name)
+
+        self.logger.debug('@%s gave no advise.', mention.user.screen_name)
         return False
 
 
@@ -191,13 +196,9 @@ class Robot:
         if self.act_on_twitter:
             reply_status = self.build_reply_status(tweet, text)
             self.logger.info('Reply: "%s"', reply_status)
-            try:
-                response = self.twitter.update_status(
-                    in_reply_to_status_id=tweet.id, text=reply_status)
-                self.logger.debug('Reply response: %s', response)
-            # pylint: disable=broad-except
-            except Exception as error:
-                self.logger.error(error)
+            response = self.twitter.update_status(
+                in_reply_to_status_id=tweet.id, text=reply_status)
+            self.logger.debug('Reply response: %s', response)
         else:
             self.logger.info('I HAVE NOT replied on Twitter!')
 

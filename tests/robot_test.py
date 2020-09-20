@@ -69,28 +69,28 @@ class RobotTestCase(TestCase):
             text=self.mention_text,
             in_reply_to_status_id=1234567890,
         )
-        self.tweet_advice_stop = mock.Mock(
+        self.tweet_advise_stop = mock.Mock(
             id=1234567896,
             user=self.advisor_1,
             text='@{}!STOP!1!'.format(self.user_me.screen_name),
             in_reply_to_status_id=None,
         )
-        self.tweet_advice_start = mock.Mock(
+        self.tweet_advise_start = mock.Mock(
             id=1234567897,
             user=self.advisor_2,
             text='@{}! START'.format(self.user_me.screen_name),
             in_reply_to_status_id=None,
         )
-        self.tweet_advice_unknown = mock.Mock(
+        self.tweet_advise_unknown = mock.Mock(
             id=1234567898,
             user=self.advisor_1,
             text='@{}! NOADVISE'.format(self.user_me.screen_name),
             in_reply_to_status_id=None,
         )
-        self.tweet_advice_not_an_advice = mock.Mock(
+        self.tweet_advise_not_an_advise = mock.Mock(
             id=1234567899,
             user=self.advisor_2,
-            text='Not an advice, hello @{}!'.format(self.user_me.screen_name),
+            text='Not an advise, hello @{}!'.format(self.user_me.screen_name),
             in_reply_to_status_id=None,
         )
 
@@ -107,21 +107,23 @@ class RobotTestCase(TestCase):
                 self.tweet_from_nonfollower,
                 # 2 retweet_action 1
                 self.tweet_by_follower_1,
-                # 3 advice_action 1
-                self.tweet_advice_stop,
+                # 3 advise_action 1
+                self.tweet_advise_stop,
                 # 4 read_mention 2 (sleeping)
                 self.tweet_by_follower_2,
                 # 5 read_mention 3
-                self.tweet_advice_not_an_advice,
+                self.tweet_advise_not_an_advise,
                 # 6 read_mention 4
-                self.tweet_advice_unknown,
-                # 7 advice_action 2
-                self.tweet_advice_start,
-                # totally ignored
+                self.tweet_advise_unknown,
+                # 7 advise_action 2
+                self.tweet_advise_start,
+                #8 ...
+                self.tweet_advise_start,
+                # 9 totally ignored
                 self.tweet_by_myself,
-                # 8 read_mention 5
+                # 10 read_mention 5
                 self.tweet_by_protected_follower,
-                # 9 read_mention 6
+                # 11 read_mention 6
                 self.tweet_reply_by_follower
             ]),
         )
@@ -187,13 +189,20 @@ class RobotTest(RobotTestCase):
     def test_can_apply_advises(self):
         '''Must apply advises'''
         self.assertTrue(self.bot.is_awake())
-        self.assertTrue(self.bot.apply_advise(self.tweet_advice_stop))
+        self.assertTrue(self.bot.apply_advise(self.tweet_advise_stop))
         self.assertFalse(self.bot.is_awake())
-        self.assertTrue(self.bot.apply_advise(self.tweet_advice_start))
+        self.assertTrue(self.bot.apply_advise(self.tweet_advise_start))
         self.assertTrue(self.bot.is_awake())
-        self.assertFalse(self.bot.apply_advise(self.tweet_advice_not_an_advice))
-        self.assertFalse(self.bot.apply_advise(self.tweet_advice_unknown))
+        self.assertFalse(self.bot.apply_advise(self.tweet_advise_not_an_advise))
+        self.assertFalse(self.bot.apply_advise(self.tweet_advise_unknown))
         self.assertFalse(self.bot.apply_advise(self.tweet_by_follower_1))
+
+    def test_can_apply_advises_once_only(self):
+        '''Must apply advises once only'''
+        self.bot.get_new_mentions()
+        self.bot.get_new_mentions()
+        self.bot.get_new_mentions()
+        self.assertEqual(2, self.bot.twitter.update_status.call_count)
 
     def test_housekeeping(self):
         '''Must do proper housekeeping'''
@@ -218,25 +227,25 @@ class RobotTest(RobotTestCase):
 
     def test_can_build_reply_status(self):
         '''Must build reply status'''
-        user_name = self.tweet_advice_unknown.user.screen_name
+        user_name = self.tweet_advise_unknown.user.screen_name
         good_reply = 'Already mention @' + user_name + ' in reply.'
         self.assertEqual(
             good_reply,
-             self.bot.build_reply_status(self.tweet_advice_unknown, good_reply)
+             self.bot.build_reply_status(self.tweet_advise_unknown, good_reply)
         )
         fix_reply = 'Does not mention anything.'
         self.assertEqual(
             '@' + user_name + ' ' + fix_reply,
-             self.bot.build_reply_status(self.tweet_advice_unknown, fix_reply)
+             self.bot.build_reply_status(self.tweet_advise_unknown, fix_reply)
         )
 
     def test_can_reply(self):
         '''Must reply'''
         self.bot.act_on_twitter = False
-        self.bot.reply(self.tweet_advice_unknown, 'Nope!')
+        self.bot.reply(self.tweet_advise_unknown, 'Nope!')
         self.assertEqual(0, self.bot.twitter.update_status.call_count)
         self.bot.act_on_twitter = True
-        self.bot.reply(self.tweet_advice_unknown, 'Nope!')
+        self.bot.reply(self.tweet_advise_unknown, 'Nope!')
         self.assertEqual(1, self.bot.twitter.update_status.call_count)
 
     def test_get_new_mentions(self):

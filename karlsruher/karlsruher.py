@@ -9,24 +9,17 @@ class Karlsruher(Robot):
 
     def feature_retweets(self):
         '''Read new mentions to apply retweets'''
-
         self.lock.acquire('Reading mentions for retweets...')
-
         try:
-
             for mention in self.get_new_mentions():
-
                 try:
-
                     if self.retweet_applies(mention):
                         self.logger.info('%s retweeted.', Robot.tweet_str(mention))
                     else:
                         self.logger.info('%s ignored.', Robot.tweet_str(mention))
-
                 finally:
                     # All mentions handled by this feature are remembered:
                     self.remember_tweet(mention.id)
-
         finally:
             self.lock.release('Reading mentions done')
 
@@ -62,9 +55,14 @@ class Karlsruher(Robot):
             return True
 
         # Retweeting on Twitter:
-        self.logger.info('Retweeting: @%s', Robot.tweet_str(mention))
-        response = self.twitter.retweet(mention.id)
-        self.logger.debug('Retweet response: %s', response)
+        self.logger.debug('Retweeting: %s', Robot.tweet_str(mention))
+        try:
+            response = self.twitter.retweet(mention.id)
+            self.logger.debug('Retweet response: %s', response)
+
+        # pylint: disable=broad-except
+        except Exception as error:
+            self.logger.error(error)
 
         # Do not flood Twitter with retweets:
         self.delay()
