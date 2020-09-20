@@ -1,8 +1,8 @@
 # Karlsruher Twitter Robot
 # https://github.com/schlind/Karlsruher
-"""
+'''
 Test tweepy extension
-"""
+'''
 
 import contextlib, io, os, sys, tempfile
 from unittest import mock, TestCase
@@ -33,11 +33,11 @@ class TweepyXTest(TestCase):
             os.remove(self.yaml_file.name)
 
     def test_fail_missing_auth_yaml(self):
-        """Fail when auth.yaml is missing"""
+        '''Fail when auth.yaml is missing'''
         self.assertRaises(FileNotFoundError, tweepyx.API, '/does/_not_/exist', False)
 
     def test_fail_broken_auth_yaml(self):
-        """Fail when auth.yaml is missing"""
+        '''Fail when auth.yaml is missing'''
         with open(self.yaml_file.name, 'w') as f:
             f.write('''broken
               yaml''')
@@ -45,15 +45,15 @@ class TweepyXTest(TestCase):
 
     @patch('builtins.input', mock.Mock(side_effect=['A','B','C','D']))
     def test_can_ask(self):
-        """Ask correct tupel"""
+        '''Ask correct tupel'''
         with managed_io() as (stdio):
             self.assertEqual(('A', 'B', 'C', 'D'), tweepyx.ask())
 
     @patch('builtins.input', mock.Mock(side_effect=['A','B','C','D']))
     def test_can_create_auth_yaml(self):
-        """Auth file created"""
+        '''Auth file created'''
         with managed_io() as (stdio):
-            tweepyx.create_auth_yaml(self.yaml_file.name)
+            tweepyx.create_auth_yaml_on_demand(self.yaml_file.name)
         self.assertTrue(os.path.exists(self.yaml_file.name))
         with open(self.yaml_file.name, 'r') as f:
             self.assertEqual([
@@ -67,23 +67,23 @@ class TweepyXTest(TestCase):
         ], f.readlines())
 
     def test_not_overwriting_auth_yaml(self):
-        """Auth file not overwritten"""
+        '''Auth file not overwritten'''
         with open(self.yaml_file.name, 'w') as f:
             f.write('original')
-        tweepyx.create_auth_yaml(self.yaml_file.name)
+        tweepyx.create_auth_yaml_on_demand(self.yaml_file.name)
         with open(self.yaml_file.name, 'r') as f:
             self.assertEqual(['original'], f.readlines())
 
     @patch('builtins.input', mock.Mock(side_effect=['A','B','C','D']))
     def test345(self):
-        """Get API instance"""
+        '''Get API instance'''
         with managed_io() as (stdio):
             self.assertTrue(tweepyx.API(auth_yaml=self.yaml_file.name) is not None)
 
     @patch('builtins.input', mock.Mock(side_effect=['consumerkey','consumersecret','pin']))
     @patch('tweepy.OAuthHandler', mock.Mock())
     def test_syn2(self):
-        """Tribute syn2"""
+        '''Tribute syn2'''
         with managed_io() as (stdio):
             tweepyx.syn2()
         console = stdio.getvalue()

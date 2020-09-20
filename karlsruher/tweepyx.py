@@ -1,8 +1,6 @@
-# Karlsruher Twitter Robot
-# https://github.com/schlind/Karlsruher
-"""
-Convenience extension for tweepy.API creation
-"""
+'''
+Convenience extension for easy tweepy.API creation
+'''
 
 import os
 import tweepy
@@ -10,10 +8,9 @@ import yaml
 
 # pylint: disable=invalid-name
 class tweepyx:
-    """
-    Feature YAML file base authentication
-    """
+    '''Feature YAML file base authentication'''
 
+    # Template for YAML files:
     YAML_TEMPLATE = '''
 twitter:
     consumer:
@@ -24,7 +21,7 @@ twitter:
         secret: '{3}'
     '''.strip()
 
-
+    # Example YAML file:
     YAML_EXAMPLE = YAML_TEMPLATE.format(
         'YOUR-CONSUMER-KEY', 'YOUR-CONSUMER-SECRET',
         'YOUR-ACCESS-KEY', 'YOUR-ACCESS-SECRET'
@@ -32,18 +29,19 @@ twitter:
 
 
     @staticmethod
-    def API(auth_yaml, create_file=True):
-        """
-        :return: The authenticated tweepy.API
-        """
-        if create_file:
-            tweepyx.create_auth_yaml(auth_yaml)
+    def API(auth_yaml, create_file_on_demand=True):
+        ''':return: The authenticated tweepy.API instance'''
+
+        if create_file_on_demand:
+            tweepyx.create_auth_yaml_on_demand(auth_yaml)
+
         if not os.path.isfile(auth_yaml):
             raise FileNotFoundError(
                 'Please create file "{}" with contents:\n{}'.format(
                     auth_yaml, tweepyx.YAML_EXAMPLE
                 )
             )
+
         with open(auth_yaml, 'r') as yaml_file:
             try:
                 read_yaml = yaml.safe_load(yaml_file)
@@ -54,14 +52,17 @@ twitter:
                     read_yaml['twitter']['access']['secret']
                 )
             except:
+                # pylint: disable=raise-missing-from
                 raise tweepy.TweepError(
-                    'Please check file "{}" for proper contents:\n{}'.format(
-                        auth_yaml, tweepyx.YAML_EXAMPLE
-                    )
+                    'Please check file "{0}" for proper contents:\n{1}'
+                        .format(auth_yaml, tweepyx.YAML_EXAMPLE)
                 )
+
         consumer_key, consumer_secret, access_key, access_secret = credentials
+
         oauth_handler = tweepy.OAuthHandler(consumer_key, consumer_secret)
         oauth_handler.set_access_token(access_key, access_secret)
+
         return tweepy.API(
             auth_handler=oauth_handler,
             compression=True,
@@ -71,9 +72,7 @@ twitter:
 
     @staticmethod
     def ask():
-        """
-        :return: The credentials given by the user
-        """
+        ''':return: The credentials as given by the user'''
         print('Your Twitter API credentials:')
         return (
             input('CONSUMER KEY? ').strip(),
@@ -83,26 +82,23 @@ twitter:
         )
 
     @staticmethod
-    def create_auth_yaml(auth_yaml_file):
-        """
-        :param auth_yaml_file: The file to create
-        """
+    def create_auth_yaml_on_demand(auth_yaml_file):
+        ''':param auth_yaml_file: The file to create'''
         if os.path.isfile(auth_yaml_file):
             return
         consumer_key, consumer_secret, access_key, access_secret = tweepyx.ask()
+
         yaml_content = tweepyx.YAML_TEMPLATE.format(
             consumer_key, consumer_secret, access_key, access_secret
         ).strip()
+
         print('Creating file', auth_yaml_file, 'with content:\n', yaml_content)
         with open(auth_yaml_file, 'w') as yaml_file:
             yaml_file.write(str(yaml_content))
 
     @staticmethod
     def syn2():
-        """
-        Replaces "authorize_access_token.py" and "register.py"...
-        :return:
-        """
+        '''Replaces "authorize_access_token.py" and "register.py" from syn2'''
         consumer_key = input('Consumer Key: ').strip()
         consumer_secret = input('Consumer Secret: ').strip()
         oauthhandler = tweepy.OAuthHandler(consumer_key, consumer_secret)

@@ -1,149 +1,128 @@
-# Karlsruher Twitter Robot
-# https://github.com/schlind/Karlsruher
-"""
-Test Config and Robot
-"""
+'''
+RobotTestCaste RobotTest
+'''
 
 import tempfile
 from unittest import mock
 from unittest import TestCase
 
+from karlsruher.common import LockException
 from karlsruher.brain import Brain
-from karlsruher.robot import Config, Robot
-
-
-class ConfigTest(TestCase):
-
-    """Test config."""
-
-    def setUp(self):
-        self.test_home = tempfile.gettempdir()
-
-    def test_config_requires_existing_home_directory(self):
-        """Config must fail with non-existing home."""
-        self.assertRaises(NotADirectoryError, Config, './not/existing/home')
-
-    def test_config_has_home_and_defaults(self):
-        """Config must have defaults."""
-        config = Config(home=self.test_home)
-        self.assertFalse(config.do_reply)
-        self.assertFalse(config.do_retweet)
-        self.assertEqual(config.home, self.test_home)
-
-    def test_config_has_do_reply(self):
-        """Config must take values."""
-        config = Config(home=self.test_home, do_reply=True, do_retweet=False)
-        self.assertTrue(config.do_reply)
-        self.assertFalse(config.do_retweet)
-
-    def test_config_has_do_retweet(self):
-        """Config must take values."""
-        config = Config(home=self.test_home, do_reply=False, do_retweet=True)
-        self.assertFalse(config.do_reply)
-        self.assertTrue(config.do_retweet)
-
+from karlsruher.robot import Robot
 
 class RobotTestCase(TestCase):
-
-    """Provide re-usable test data and mocks."""
+    '''TestCase for Robot'''
 
     def setUp(self):
 
         self.test_home = tempfile.gettempdir()
-        self.test_config = Config(home=self.test_home)
         self.test_brain = Brain(':memory:')
 
-        self.mock_me = mock.Mock(id=111, screen_name='TestBot')
-        self.mention_text = 'Test @{} mention.'.format(self.mock_me.screen_name)
+        self.user_me = mock.Mock(id=111, screen_name='TestRobot')
+        self.user_unknown = mock.Mock(id=777, screen_name='anyone')
 
-        self.mock_anyuser = mock.Mock(id=777, screen_name='any_user')
-        self.mock_follower_1 = mock.Mock(id=101, screen_name='follower_1')
-        self.mock_follower_2 = mock.Mock(id=102, screen_name='follower_2')
-        self.mock_follower_3 = mock.Mock(id=103, screen_name='follower_3', protected=True)
-        self.mock_friend_1 = mock.Mock(id=201, screen_name='friend_1')
-        self.mock_friend_2 = mock.Mock(id=202, screen_name='friend_2')
-        self.mock_advisor_1 = mock.Mock(id=501, screen_name='advisor_1')
-        self.mock_advisor_2 = mock.Mock(id=502, screen_name='advisor_2')
+        self.advisor_1 = mock.Mock(id=501, screen_name='advisor_1')
+        self.advisor_2 = mock.Mock(id=502, screen_name='advisor_2')
 
-        self.mock_mention_from_nonfollower = mock.Mock(
-            in_reply_to_status_id=None, id=1346453345, user=self.mock_anyuser,
-            text=self.mention_text
+        self.follower_1 = mock.Mock(id=101, screen_name='follower_1')
+        self.follower_2 = mock.Mock(id=102, screen_name='follower_2')
+        self.follower_3 = mock.Mock(id=103, screen_name='follower_3', protected=True)
+
+        self.friend_1 = mock.Mock(id=201, screen_name='friend_1')
+        self.friend_2 = mock.Mock(id=202, screen_name='friend_2')
+
+        self.mention_text = 'Test @{} mention.'.format(self.user_me.screen_name)
+
+        self.tweet_from_nonfollower = mock.Mock(
+            id=1234567890,
+            user=self.user_unknown,
+            text=self.mention_text,
+            in_reply_to_status_id=None,
         )
-        self.mock_mention_by_myself = mock.Mock(
-            in_reply_to_status_id=None, id=69823745, user=self.mock_me,
-            text=self.mention_text
+        self.tweet_by_myself = mock.Mock(
+            id=1234567891,
+            user=self.user_me,
+            text=self.mention_text,
+            in_reply_to_status_id=None,
         )
-        self.mock_mention_by_follower_1 = mock.Mock(
-            in_reply_to_status_id=None, id=7239847976, user=self.mock_follower_1,
-            text=self.mention_text
+        self.tweet_by_follower_1 = mock.Mock(
+            id=1234567892,
+            user=self.follower_1,
+            text=self.mention_text,
+            in_reply_to_status_id=None,
         )
-        self.mock_mention_by_follower_2 = mock.Mock(
-            in_reply_to_status_id=None, id=892346197, user=self.mock_follower_2,
-            text=self.mention_text
+        self.tweet_by_follower_2 = mock.Mock(
+            id=1234567893,
+            user=self.follower_2,
+            text=self.mention_text,
+            in_reply_to_status_id=None,
         )
-        self.mock_mention_by_protected_follower = mock.Mock(
-            in_reply_to_status_id=None, id=937091748, user=self.mock_follower_3,
-            text=self.mention_text
+        self.tweet_by_protected_follower = mock.Mock(
+            id=1234567894,
+            user=self.follower_3,
+            text=self.mention_text,
+            in_reply_to_status_id=None,
         )
-        self.mock_mention_reply_by_follower = mock.Mock(
-            in_reply_to_status_id=9237498712, id=34993409, user=self.mock_follower_1,
-            text=self.mention_text
+        self.tweet_reply_by_follower = mock.Mock(
+            id=1234567895,
+            user=self.follower_1,
+            text=self.mention_text,
+            in_reply_to_status_id=1234567890,
         )
-        self.mock_mention_advice_gosleep = mock.Mock(
-            in_reply_to_status_id=None, id=2345345345, user=self.mock_advisor_1,
-            text='@{}! geh schlafen!'.format(self.mock_me.screen_name)
+        self.tweet_advice_stop = mock.Mock(
+            id=1234567896,
+            user=self.advisor_1,
+            text='@{}!STOP!1!'.format(self.user_me.screen_name),
+            in_reply_to_status_id=None,
         )
-        self.mock_mention_advice_wakeup = mock.Mock(
-            in_reply_to_status_id=None, id=33453453, user=self.mock_advisor_2,
-            text='@{}! wach auf!'.format(self.mock_me.screen_name)
+        self.tweet_advice_start = mock.Mock(
+            id=1234567897,
+            user=self.advisor_2,
+            text='@{}! START'.format(self.user_me.screen_name),
+            in_reply_to_status_id=None,
         )
-        self.mock_mention_advice_unknown = mock.Mock(
-            in_reply_to_status_id=None, id=4987349587, user=self.mock_advisor_1,
-            text='@{}! foo bar!'.format(self.mock_me.screen_name)
+        self.tweet_advice_unknown = mock.Mock(
+            id=1234567898,
+            user=self.advisor_1,
+            text='@{}! NOADVISE'.format(self.user_me.screen_name),
+            in_reply_to_status_id=None,
         )
-        self.mock_mention_advice_not_an_advice = mock.Mock(
-            in_reply_to_status_id=None, id=5829347, user=self.mock_advisor_2,
-            text='not an advice @{} hi!'.format(self.mock_me.screen_name)
+        self.tweet_advice_not_an_advice = mock.Mock(
+            id=1234567899,
+            user=self.advisor_2,
+            text='Not an advice, hello @{}!'.format(self.user_me.screen_name),
+            in_reply_to_status_id=None,
         )
+
 
         self.mock_twitter = mock.Mock(
-            me=mock.MagicMock(return_value=self.mock_me),
-            followers=mock.MagicMock(return_value=[
-                self.mock_follower_1,
-                self.mock_follower_2,
-                self.mock_follower_3
-            ]),
-            friends=mock.MagicMock(return_value=[
-                self.mock_friend_1,
-                self.mock_friend_2
-            ]),
-            list_members=mock.MagicMock(return_value=[
-                self.mock_advisor_1,
-                self.mock_advisor_2
-            ]),
+            me=mock.MagicMock(return_value=self.user_me),
+            list_members=mock.MagicMock(return_value=[self.advisor_1, self.advisor_2]),
+            follower_ids=mock.MagicMock(return_value=[self.follower_1.id, self.follower_2.id, self.follower_3.id]),
+            friend_ids=mock.MagicMock(return_value=[self.friend_1.id, self.friend_2.id]),
             update_status=mock.Mock(),
             retweet=mock.Mock(),
             mentions_timeline=mock.MagicMock(return_value=[
                 # 1 read_mention 1
-                self.mock_mention_from_nonfollower,
+                self.tweet_from_nonfollower,
                 # 2 retweet_action 1
-                self.mock_mention_by_follower_1,
+                self.tweet_by_follower_1,
                 # 3 advice_action 1
-                self.mock_mention_advice_gosleep,
+                self.tweet_advice_stop,
                 # 4 read_mention 2 (sleeping)
-                self.mock_mention_by_follower_2,
+                self.tweet_by_follower_2,
                 # 5 read_mention 3
-                self.mock_mention_advice_not_an_advice,
+                self.tweet_advice_not_an_advice,
                 # 6 read_mention 4
-                self.mock_mention_advice_unknown,
+                self.tweet_advice_unknown,
                 # 7 advice_action 2
-                self.mock_mention_advice_wakeup,
+                self.tweet_advice_start,
                 # totally ignored
-                self.mock_mention_by_myself,
+                self.tweet_by_myself,
                 # 8 read_mention 5
-                self.mock_mention_by_protected_follower,
+                self.tweet_by_protected_follower,
                 # 9 read_mention 6
-                self.mock_mention_reply_by_follower
+                self.tweet_reply_by_follower
             ]),
         )
 
@@ -154,64 +133,117 @@ class RobotTestCase(TestCase):
         if self.bot is not None:
             # Just to be sure:
             self.bot.lock.release()
+            self.bot.sleep.release()
+
 
 
 class RobotTest(RobotTestCase):
-
-    """Test basics."""
+    '''Test the Robot'''
 
     def setUp(self):
+        '''Create a Robot'''
         super().setUp()
-        self.bot = Robot(
-            config=self.test_config,
-            brain=self.test_brain,
-            twitter=self.mock_twitter
-        )
+        self.bot = Robot(self.test_home, self.test_brain, self.mock_twitter)
 
-    def test_not_locked(self):
-        """Robot must not be locked."""
+    def test_is_not_locked_initially(self):
+        '''Must not be locked'''
         self.assertFalse(self.bot.lock.is_acquired())
+        self.assertFalse(self.bot.sleep.is_acquired())
 
-    def test_perform(self):
-        """Robot must perform."""
-        self.assertTrue(callable(self.bot.perform))
-        self.bot.perform()
+    def test_can_detect_sleeping_mode(self):
+        '''Must detect sleep-mode'''
+        self.bot.go_sleep()
+        new_bot = Robot(self.test_home, self.test_brain, self.mock_twitter)
+        self.assertFalse(new_bot.is_awake())
+
+    def test_requires_existing_home_directory(self):
+        '''Must fail with non-existing home'''
+        self.assertRaises(NotADirectoryError, Robot, './not/existing/home')
+
+    def test_act_on_twitter_default(self):
+        '''Must act on Twitter'''
+        self.assertTrue(self.bot.act_on_twitter)
 
     def test_can_get_screen_name(self):
-        """Robot must determine it's name."""
-        self.assertEqual(self.mock_me.screen_name, self.bot.twitter.screen_name)
+        '''Must determine own name'''
+        self.assertEqual(self.user_me.screen_name, self.bot.twitter.screen_name)
         self.assertEqual(1, self.bot.twitter.me.call_count)
 
-    def test_start_with_empty_brain(self):
-        """Robot brain must be empty."""
-        self.assertEqual(0, self.bot.brain.count_tweets())
-        self.assertEqual(0, len(self.bot.brain.users('follower')))
-        self.assertEqual(0, len(self.bot.brain.users('friend')))
-        self.assertIsNone(self.bot.brain.get('retweet_disabled'))
+    def test_can_handle_sleep_mode(self):
+        '''Must handle sleep mode'''
+        self.assertTrue(self.bot.is_awake())
+        self.bot.go_sleep('test')
+        self.assertFalse(self.bot.is_awake())
+        self.bot.go_sleep('test')
+        self.bot.wake_up('test')
+        self.assertTrue(self.bot.is_awake())
 
-    def test_create_brain(self):
-        """Robot must create a brain."""
-        bot = Robot(config=self.test_config, twitter=self.mock_twitter)
-        self.assertEqual(Brain, bot.brain.__class__)
+    def test_has_advisors(self):
+        '''Must have advisors'''
+        self.assertEqual(2, len(self.bot.advisors))
+        self.assertTrue('501' in self.bot.advisors)
+        self.assertTrue('502' in self.bot.advisors)
 
-    def test_reply_off(self):
-        """Robot must not reply."""
-        self.bot.reply(mock.Mock(id=1), 'test')
+    def test_can_apply_advises(self):
+        '''Must apply advises'''
+        self.assertTrue(self.bot.is_awake())
+        self.assertTrue(self.bot.apply_advise(self.tweet_advice_stop))
+        self.assertFalse(self.bot.is_awake())
+        self.assertTrue(self.bot.apply_advise(self.tweet_advice_start))
+        self.assertTrue(self.bot.is_awake())
+        self.assertFalse(self.bot.apply_advise(self.tweet_advice_not_an_advice))
+        self.assertFalse(self.bot.apply_advise(self.tweet_advice_unknown))
+        self.assertFalse(self.bot.apply_advise(self.tweet_by_follower_1))
+
+    def test_housekeeping(self):
+        '''Must do proper housekeeping'''
+        self.bot.housekeeping()
+        self.assertTrue(self.bot.is_follower("101"))
+        self.assertTrue(self.bot.is_follower("102"))
+        self.assertTrue(self.bot.is_follower("103"))
+        self.assertTrue(self.bot.is_friend("201"))
+        self.assertTrue(self.bot.is_friend("202"))
+
+    def test_housekeeping_handles_lock(self):
+        '''Must not ignore housekeeping lock'''
+        self.bot.lock.acquire()
+        self.assertRaises(LockException, self.bot.housekeeping)
+
+    def test_can_handle_tweets(self):
+        '''Must handle tweets'''
+        self.assertFalse(self.bot.has_tweet(123))
+        self.bot.remember_tweet(123)
+        self.assertTrue(self.bot.has_tweet(123))
+        self.assertEqual('@follower_1/1234567892', Robot.tweet_str(self.tweet_by_follower_1))
+
+    def test_can_build_reply_status(self):
+        '''Must build reply status'''
+        user_name = self.tweet_advice_unknown.user.screen_name
+        good_reply = 'Already mention @' + user_name + ' in reply.'
+        self.assertEqual(
+            good_reply,
+             self.bot.build_reply_status(self.tweet_advice_unknown, good_reply)
+        )
+        fix_reply = 'Does not mention anything.'
+        self.assertEqual(
+            '@' + user_name + ' ' + fix_reply,
+             self.bot.build_reply_status(self.tweet_advice_unknown, fix_reply)
+        )
+
+    def test_can_reply(self):
+        '''Must reply'''
+        self.bot.act_on_twitter = False
+        self.bot.reply(self.tweet_advice_unknown, 'Nope!')
         self.assertEqual(0, self.bot.twitter.update_status.call_count)
-
-    def test_reply_on(self):
-        """Robot must reply."""
-        self.bot.config.do_reply = True
-        self.bot.reply(mock.Mock(id=1), 'test')
+        self.bot.act_on_twitter = True
+        self.bot.reply(self.tweet_advice_unknown, 'Nope!')
         self.assertEqual(1, self.bot.twitter.update_status.call_count)
 
-    def test_retweet_off(self):
-        """Robot must not retweet."""
-        self.bot.retweet(mock.Mock(id=1))
-        self.assertEqual(0, self.bot.twitter.retweet.call_count)
-
-    def test_retweet_on(self):
-        """Robot must retweet."""
-        self.bot.config.do_retweet = True
-        self.bot.retweet(mock.Mock(id=1))
-        self.assertEqual(1, self.bot.twitter.retweet.call_count)
+    def test_get_new_mentions(self):
+        '''Must provide new mentions'''
+        mentions = self.bot.get_new_mentions()
+        self.assertEqual(7, len(mentions))
+        self.bot.remember_tweet(mentions[0].id)
+        self.bot.remember_tweet(mentions[3].id)
+        mentions = self.bot.get_new_mentions()
+        self.assertEqual(5, len(mentions))

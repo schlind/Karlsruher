@@ -1,8 +1,6 @@
-# Karlsruher Twitter Robot
-# https://github.com/schlind/Karlsruher
-"""
-Test CommandLine
-"""
+'''
+CommandLineTest
+'''
 
 import contextlib
 import io
@@ -12,22 +10,25 @@ import tempfile
 from unittest import mock
 from unittest import TestCase
 
-from karlsruher.commandline import CommandLine
+from karlsruher.commandline import CommandLine, TEXT_HELP, TEXT_PLEASE_SPECIFY_HOME
 
 class CommandLineTest(TestCase):
-
-    known_task_args = ['-housekeeping', '-read', '-talk']
+    '''Test the CommandLine'''
 
     def setUp(self):
+        '''Temporary home directory, dummy auth.yaml file, in-memory Brain'''
         self.test_home = tempfile.gettempdir()
         self.test_auth_yaml_file = '{}/auth.yaml'.format(self.test_home)
+        self.test_brain_file = ':memory:'
 
     def tearDown(self):
+        '''Remove dummy auth.yaml file'''
         if os.path.exists(self.test_auth_yaml_file):
             os.remove(self.test_auth_yaml_file)
 
     @contextlib.contextmanager
     def managed_io(self):
+        '''Capture console'''
         stdout, stderr = sys.stdout, sys.stderr
         try:
             sys.stdout, sys.stderr = io.StringIO(), io.StringIO()
@@ -36,63 +37,88 @@ class CommandLineTest(TestCase):
             sys.stdout, sys.stderr = stdout, stderr
 
     def test_can_show_version(self):
-        """CommandLine must show a version."""
+        '''CommandLine must show a version on demand'''
         with self.managed_io() as (out, err):
             sys.argv = ['-version']
             self.assertEqual(0, CommandLine.run())
             console = out.getvalue().strip()
-            self.assertTrue(console.startswith('Karlsruher '), console)
+            self.assertEqual(TEXT_HELP.splitlines()[0], console)
 
     def test_can_show_help(self):
-        """CommandLine must show help."""
+        '''CommandLine must show help on demand'''
         with self.managed_io() as (out, err):
-            for arg in ['', '-help', 'what?']:
-                sys.argv = [arg]
-                self.assertEqual(0, CommandLine.run())
-                console = out.getvalue().strip()
-                self.assertTrue(console.startswith('Karlsruher '), console)
+            sys.argv = ['-help']
+            self.assertEqual(0, CommandLine.run())
+            console = out.getvalue().strip()
+            self.assertEqual(TEXT_HELP, console)
 
-    def test_can_show_error_missing_home(self):
-        """CommandLine must show error missing home."""
+    def test_can_show_help_without_home(self):
+        '''CommandLine must show help'''
         with self.managed_io() as (out, err):
-            for arg in self.known_task_args:
-                sys.argv = [arg]
-                self.assertEqual(1, CommandLine.run())
-                console = out.getvalue().strip()
-                self.assertTrue(console.startswith('Please specify '), console)
+            sys.argv = ['']
+            self.assertEqual(1, CommandLine.run())
+            console = out.getvalue().strip()
+            self.assertEqual(TEXT_HELP + '\n' + TEXT_PLEASE_SPECIFY_HOME, console)
 
     def test_can_show_error_non_existing_home(self):
-        """CommandLine must show error non existing home."""
+        '''CommandLine must show error with non existing home'''
         with self.managed_io() as (out, err):
-            for arg in self.known_task_args:
-                sys.argv = [arg, '--home=/does/not/exist']
-                self.assertEqual(1, CommandLine.run())
-                console = out.getvalue().strip()
-                self.assertTrue(console.startswith('Specified home '), console)
+            sys.argv = ['--home=/does/not/exist']
+            self.assertEqual(1, CommandLine.run())
+            console = out.getvalue().strip()
+            self.assertTrue(console.startswith('Specified home '))
+            self.assertEqual(' not found.', console[len(console)-len(' not found.'):])
 
     def test_can_run_until_credentials_missing(self):
-        """CommandLine must show error credentials missing."""
+        '''CommandLine must show error when credentials missing'''
         with self.managed_io() as (out, err):
-            for arg in self.known_task_args:
-                sys.argv = [arg, '--home={}'.format(self.test_home)]
-                self.assertEqual(1, CommandLine.run())
-                console = out.getvalue().strip()
-                self.assertTrue(console.startswith('Please create '), console)
-
+            sys.argv = ['--home={}'.format(self.test_home)]
+            self.assertEqual(1, CommandLine.run())
+            console = out.getvalue().strip()
+            self.assertTrue(console.startswith('Please create file "'), console)
+            self.assertTrue('/auth.yaml' in console)
 
     @mock.patch('karlsruher.tweepyx.API', mock.MagicMock())
-    @mock.patch('karlsruher.twitter.Twitter.me', mock.MagicMock(return_value=mock.Mock(id=0,screen_name='test')))
-    @mock.patch('karlsruher.twitter.Twitter.followers', mock.MagicMock(return_value=[]))
-    @mock.patch('karlsruher.twitter.Twitter.friends', mock.MagicMock(return_value=[]))
+    @mock.patch('karlsruher.twitter.Twitter.me', mock.MagicMock(return_value=mock.Mock(id=0,screen_name='TestBot')))
+    @mock.patch('karlsruher.twitter.Twitter.follower_ids', mock.MagicMock(return_value=[]))
+    @mock.patch('karlsruher.twitter.Twitter.friend_ids', mock.MagicMock(return_value=[]))
     @mock.patch('karlsruher.twitter.Twitter.list_members', mock.MagicMock(return_value=[]))
     @mock.patch('karlsruher.twitter.Twitter.mentions_timeline', mock.MagicMock(return_value=[]))
     def test_can_run(self):
-        """CommandLine must run."""
+        '''CommandLine must run silently with --home'''
         with self.managed_io() as (out, err):
-            for arg in self.known_task_args:
-                sys.argv = [arg, '--home={}'.format(self.test_home)]
-                exit_code = CommandLine.run()
-                console = out.getvalue().strip()
-                self.assertEqual('', console)
-                self.assertEqual(0, exit_code)
-                self.assertEqual(0, len(console))
+            sys.argv = ['--home={}'.format(self.test_home)]
+            exit_code = CommandLine.run()
+            console = out.getvalue().strip()
+            self.assertEqual('', console)
+            self.assertEqual(0, exit_code)
+
+    @mock.patch('karlsruher.tweepyx.API', mock.MagicMock())
+    @mock.patch('karlsruher.twitter.Twitter.me', mock.MagicMock(return_value=mock.Mock(id=0,screen_name='TestBot')))
+    @mock.patch('karlsruher.twitter.Twitter.follower_ids', mock.MagicMock(return_value=[]))
+    @mock.patch('karlsruher.twitter.Twitter.friend_ids', mock.MagicMock(return_value=[]))
+    @mock.patch('karlsruher.twitter.Twitter.list_members', mock.MagicMock(return_value=[]))
+    @mock.patch('karlsruher.twitter.Twitter.mentions_timeline', mock.MagicMock(return_value=[]))
+    def test_can_run_housekeeping(self):
+        '''CommandLine must run silently with -nousekeeping'''
+        with self.managed_io() as (out, err):
+            sys.argv = ['--home={}'.format(self.test_home), '-housekeeping']
+            exit_code = CommandLine.run()
+            console = out.getvalue().strip()
+            self.assertEqual('', console)
+            self.assertEqual(0, exit_code)
+
+    @mock.patch('karlsruher.tweepyx.API', mock.MagicMock())
+    @mock.patch('karlsruher.twitter.Twitter.me', mock.MagicMock(return_value=mock.Mock(id=0,screen_name='TestBot')))
+    @mock.patch('karlsruher.twitter.Twitter.follower_ids', mock.MagicMock(return_value=[]))
+    @mock.patch('karlsruher.twitter.Twitter.friend_ids', mock.MagicMock(return_value=[]))
+    @mock.patch('karlsruher.twitter.Twitter.list_members', mock.MagicMock(return_value=[]))
+    @mock.patch('karlsruher.twitter.Twitter.mentions_timeline', mock.MagicMock(return_value=[]))
+    def test_can_run_without_acting(self):
+        '''CommandLine must run silently with -noact'''
+        with self.managed_io() as (out, err):
+            sys.argv = ['--home={}'.format(self.test_home), '-noact']
+            exit_code = CommandLine.run()
+            console = out.getvalue().strip()
+            self.assertEqual('', console)
+            self.assertEqual(0, exit_code)

@@ -1,102 +1,93 @@
-# Karlsruher Twitter Robot
-# https://github.com/schlind/Karlsruher
-"""
-Module providing CommandLine
-"""
+'''
+Commandline
+'''
 
 import sys
 
-from .housekeeping import HouseKeeper
 from .karlsruher import Karlsruher
-from .robot import Config
 from .__version__ import __version__
 
 
-HELP_TEXT = """
+TEXT_HELP = '''
 
 Karlsruher Twitter Robot v{}
 
-Example Usage:
-    karlsruher --home=/PATH [-read [-retweet] [-reply]|-talk|-housekeeping] [-debug]
-
-Options
-    -version    print version information and exit
-    -help       you are reading this right now
-
-Arguments:
-
-    --home=PATH specify a home directory
-
-    -read       read mention timeline
-    -retweet    enable the retweet feature
-    -reply      publicly reply on some tweets
-    -talk       combines all of -read, -retweet, -reply
+Retweet followers with:
+    
+    $ karlsruher --home=/PATH [-noact] [-debug]
 
 
-    -housekeeping	Perform housekeeping tasks and exit.
-        This fetches followers and friends from Twitter.
-        Due to API Rate Limits, housekeeping is throttled
-        and takes up to 1 hour per 1000 followers/friends.
-        Run this nightly once per day.
+Do housekeeping with:
 
-    -debug  sets console logging from INFO to DEBUG
+    $ karlsruher --home=/PATH -housekeeping [-debug]
 
-Cronjobs:
 
-# Cronjob reading mentions, should run every 5 minutes:
-*/5 * * * * karlsruher --home=/PATH -talk >/dev/null 2>&1
+Required argument:
 
-# Cronjob for housekeeping, should run once per day, nightly:
+    --home=PATH     specify a home directory
+
+
+Other optional options:
+
+    -noact          do internal stuff but do not act on Twitter
+    -version        print version information and exit
+    -help           you are reading this right now
+    -debug          sets console logging to DEBUG
+
+
+Example Cronjobs:
+
+# Cronjob for retweets runs every 5 minutes:
+*/5 * * * * karlsruher --home=/PATH >/dev/null 2>&1
+# Cronjob for housekeeping runs once per day:
 3 3 * * * karlsruher --home=/PATH -housekeeping >/dev/null 2>&1
 
 
 Cheers!
-""".strip().format(__version__)
+'''.strip().format(__version__)
 
+TEXT_PLEASE_SPECIFY_HOME = 'Please specify a home directory with "--home=/PATH".'
 
 class CommandLine:
-    """
-    Provide a commandline interface.
-    """
+    '''Commandline interface'''
 
     @staticmethod
     def run():
-        """
-        Read command line arguments and behave accordingly.
-        :return: Shell exit code 1 in case of any error, otherwise 0
-        """
-        if '-version' in sys.argv:
-            print(HELP_TEXT.splitlines()[0])
+        ''':return: Shell exit code 1 in case of any error, otherwise 0'''
+
+        if '-help' in sys.argv:
+            print(TEXT_HELP)
             return 0
 
-        home, task = None, None
+        if '-version' in sys.argv:
+            print(TEXT_HELP.splitlines()[0])
+            return 0
+
+        # Find home directory in arguments:
+        home = None
         for arg in sys.argv:
             if not home and arg.startswith('--home='):
                 home = arg[len('--home='):]
-            if not task and arg in ['-housekeeping', '-read', '-talk']:
-                task = arg
 
-        if not task or '-help' in sys.argv:
-            print(HELP_TEXT)
-            return 0
-
+        # Help user:
         if not home:
-            print('Please specify a home directory with "--home=/PATH".')
+            print(TEXT_HELP)
+            print(TEXT_PLEASE_SPECIFY_HOME)
             return 1
 
         try:
-            config = Config(
-                home=home,
-                do_reply='-reply' in sys.argv or '-talk' in sys.argv,
-                do_retweet='-retweet' in sys.argv or '-talk' in sys.argv
-            )
-            if task == '-housekeeping':
-                HouseKeeper(config).perform()
-            elif task in ['-read', '-talk']:
-                Karlsruher(config).perform()
+
+            # Configure and run:
+            bot = Karlsruher(home)
+            if '-noact' in sys.argv:
+                bot.act_on_twitter = False
+            if '-housekeeping' in sys.argv:
+                bot.housekeeping()
+            bot.feature_retweets()
             return 0
+
         # pylint: disable=broad-except
-        # because the user should see whatever exception arrives here.
+        # Excuse: The user should see whatever exception arrives here
         except Exception as error_message:
             print(error_message)
             return 1

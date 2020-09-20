@@ -1,151 +1,71 @@
-# Karlsruher Twitter Robot
-# https://github.com/schlind/Karlsruher
-"""
-Module providing the Karlsruher Twitter Robot
-"""
+'''
+Karlsruher Twitter Robot Personality
+'''
 
-from .common import StopWatch
 from .robot import Robot
 
-
 class Karlsruher(Robot):
-    """
-    A robot to perform the famous retweet feature.
-    """
+    '''Robot to perform the famous @Karlsruher retweet feature'''
 
-    # The related tweet_type in the Brain:
-    tweet_type = 'mention'
+    def feature_retweets(self):
+        '''Read new mentions to apply retweets'''
 
-    # The key for Brain get/set that indicates sleeping state:
-    sleeping = 'sleeping'
+        self.lock.acquire('Reading mentions for retweets...')
 
-    # Advisors:
-    # A list of Twitter users who can switch
-    # retweets on/off by tweeted commands.
-    advisor_list_slug = 'advisors'
-    advisors = []
-
-    # Language:
-    reply_advice_sleep = 'Ok %name%, ich retweete nicht mehr... (Automatische Antwort)'
-    reply_advice_wakeup = 'Ok %name%, ich retweete wieder... (Automatische Antwort)'
-
-    def perform(self):
-        """
-        Read latest mentions and delegate actions.
-        """
-        self.lock.acquire()
-        watch = StopWatch()
-        self.logger.info('Fetching advisors, reading mentions...')
         try:
 
-            self.advisors = []
-            for advisor in self.twitter.list_members(
-                    self.twitter.screen_name, self.advisor_list_slug
-            ):
-                self.advisors.append(str(advisor.id))
+            for mention in self.get_new_mentions():
 
-            for mention in self.twitter.mentions_timeline():
-                self.read_mention(mention)
+                try:
+
+                    if self.retweet_applies(mention):
+                        self.logger.info('%s retweeted.', Robot.tweet_str(mention))
+                    else:
+                        self.logger.info('%s ignored.', Robot.tweet_str(mention))
+
+                finally:
+                    # All mentions handled by this feature are remembered:
+                    self.remember_tweet(mention.id)
 
         finally:
-            self.logger.info('Reading mentions done, took %s.', watch.elapsed())
-            self.lock.release()
+            self.lock.release('Reading mentions done')
 
-    def read_mention(self, tweet):
-        """
-        Read a single mention and apply actions, only once.
+    def retweet_applies(self, mention):
+        '''
+        :param mention: The mention to retweet
+        :return: True when a retweet was applied, otherwise False
+        '''
 
-        The applied action can either be "read_mention",
-        "advice_action" or "retweet_action".
-
-        :param tweet: The mention to be read.
-        :return: True if the mention was read for the first time
-            or False if the mention was already read before
-        """
-        tweet_log = '@{}/{}'.format(tweet.user.screen_name, tweet.id)
-
-        if str(tweet.user.screen_name) == str(self.twitter.screen_name):
-            self.logger.debug('%s is by me, no action.', tweet_log)
+        # Ignore mentions from myself:
+        if str(mention.user.screen_name) == str(self.twitter.screen_name):
+            self.logger.debug('@%s is me.', mention.user.screen_name)
             return False
 
-        if self.brain.has_tweet(self.tweet_type, tweet.id):
-            self.logger.info('%s read before, no action.', tweet_log)
+        # Can't retweet protected users:
+        if str(mention.user.protected) == 'True':
+            self.logger.debug('@%s is protected.', mention.user.screen_name)
             return False
 
-        applied_action = 'read_mention'
-        try:
-            for apply_action in [self.advice_action, self.retweet_action]:
-                if apply_action(tweet):
-                    applied_action = apply_action.__name__
-                    break
-        finally:
-            self.brain.add_tweet(self.tweet_type, tweet, applied_action)
-            self.logger.info('%s applied %s.', tweet_log, applied_action)
-
-        return True
-
-    def advice_action(self, tweet):
-        """
-        Take an advice.
-
-        Users in Twitter list "advisors" can advice the
-        bot to either go to sleep (no more retweeting)
-        or to wake up (retweet again).
-
-        :param tweet: The advice to be read
-        :return: True if an advice was taken, otherwise False
-        """
-        if str(tweet.user.id) not in self.advisors:
-            self.logger.debug('@%s is not an advisor.', tweet.user.screen_name)
+        # Never retweet replies:
+        if str(mention.in_reply_to_status_id) != 'None':
+            self.logger.debug('@%s wrote reply.', mention.user.screen_name)
             return False
 
-        message = str(tweet.text)
-        trigger = '@{}!'.format(self.twitter.screen_name.lower())
-
-        if not message.lower().startswith(trigger):
-            self.logger.debug('@%s gave no advice.', tweet.user.screen_name)
+        # Only followers get retweeted:
+        if not self.is_follower(mention.user.id):
+            self.logger.debug('@%s not following.', mention.user.screen_name)
             return False
 
-        advice = message[len(trigger):].strip()
-
-        if advice.lower().startswith('geh schlafen!'):
-            self.logger.info('Going to sleep for @%s.', tweet.user.screen_name)
-            self.brain.set(self.sleeping, True)
-            self.reply(tweet, self.reply_advice_sleep)
+        # Would retweet but do not so while sleeping:
+        if not self.is_awake():
+            self.logger.debug('@%s read during sleep.', mention.user.screen_name)
             return True
 
-        if advice.lower().startswith('wach auf!'):
-            self.logger.info('Waking up for @%s.', tweet.user.screen_name)
-            self.brain.set(self.sleeping, None)
-            self.reply(tweet, self.reply_advice_wakeup)
-            return True
+        # Retweeting on Twitter:
+        self.logger.info('Retweeting: @%s', Robot.tweet_str(mention))
+        response = self.twitter.retweet(mention.id)
+        self.logger.debug('Retweet response: %s', response)
 
-        return False
-
-    def retweet_action(self, tweet):
-        """
-        Maybe retweet the given tweet.
-
-        :param tweet: The tweet to maybe retweet
-        :return: True if the retweet action applied, otherwise False
-        """
-
-        if str(tweet.user.protected) == 'True':
-            self.logger.debug('@%s is protected, no retweet.', tweet.user.screen_name)
-            return False
-
-        if str(tweet.in_reply_to_status_id) != 'None':
-            self.logger.debug('@%s wrote reply, no retweet.', tweet.user.screen_name)
-            return False
-
-        if self.brain.get(self.sleeping):
-            self.logger.debug('I am sleeping and not retweeting.')
-            return False
-
-        if not self.is_follower(tweet.user.id):
-            self.logger.debug('@%s not following, no retweet.', tweet.user.screen_name)
-            return False
-
-        self.logger.debug('@%s retweeting.', tweet.user.screen_name)
-        self.retweet(tweet)
+        # Do not flood Twitter with retweets:
+        self.delay()
         return True

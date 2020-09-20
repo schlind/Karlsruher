@@ -1,128 +1,209 @@
-# Karlsruher Twitter Robot
-# https://github.com/schlind/Karlsruher
-"""
-Module providing Config and Robot
-"""
+'''
+Twitter Robot
+'''
 
 import logging
 import os
+import time
 
 from .brain import Brain
 from .common import Lock
 from .twitter import Twitter
 from .__version__ import __version__
 
+class Robot:
+    '''Base class for Twitter robots'''
 
-class Config:
-    """
-    Provide runtime configuration values.
-    """
-    def __init__(self, home, do_reply=False, do_retweet=False):
+    # Enable writing Twitter API calls:
+    act_on_twitter = True
+
+    # Delay between writing Twitter API calls:
+    act_delay = 3.275
+
+
+    def __init__(self, home, brain=None, twitter=None):
         """
-        Create instance with the given home directory.
-
-        :param home: The home directory.
-        :param do_reply: Give True to send replies
-        :param do_retweet: Give True to perform retweets
-        :raises NotADirectoryError: if the home directory is not present
+        :param home: The home directory
+        :param brain: Optional, a mocked Brain instance for testing
+        :param twitter: Optional, a mocked Twitter instance for testing
         """
         if not os.path.isdir(home):
             raise NotADirectoryError('Specified home "{}" not found.'.format(home))
 
-        self.home = home
-        self.do_reply = do_reply
-        self.do_retweet = do_retweet
-
-
-class Robot:
-    """
-    Base class for Twitter robots.
-    """
-    def __init__(self, config, brain=None, twitter=None):
-        """
-        Create instance with the specified config.
-
-        Give optional brain and twitter mock objects for testing purposes.
-
-        :type config: Config
-        :param config: The home directory and other settings
-
-        :type brain: Brain
-        :param brain: Optional, a mocked Brain instance for testing
-
-        :type twitter: Twitter
-        :param twitter: Optional, a mocked Twitter instance for testing
-        """
         self.logger = logging.getLogger(__class__.__name__)
         self.logger.info('Karlsruher Twitter Robot v%s', __version__)
 
-        self.config = config
-        self.lock = Lock('{}/lock'.format(self.config.home))
+        self.lock = Lock('{}/lock'.format(home))
+        self.sleep = Lock('{}/sleeping'.format(home))
 
-        self.twitter = twitter if twitter else Twitter('{}/auth.yaml'.format(self.config.home))
+        self.twitter = twitter if twitter else Twitter('{}/auth.yaml'.format(home))
         self.logger.info('Hello, my name is @%s.', self.twitter.screen_name)
 
-        self.brain = brain if brain else Brain('{}/brain'.format(self.config.home))
-        self.logger.info('Brain metrics: %s', self.brain.metrics())
+        self.advisors = []
+        for advisor in self.twitter.list_members(self.twitter.screen_name, 'advisors'):
+            self.logger.debug('@%s is an advisor.', advisor.screen_name)
+            self.advisors.append(str(advisor.id))
+        self.logger.info('I am having %s advisors.', len(self.advisors))
 
-    # Abstract:
+        if not self.is_awake():
+            self.logger.info('SLEEPING: I am NOT acting on Twitter!')
 
-    def perform(self):
-        """
-        Whatever task a robot performs, it's meant to start
-        here and should be implemented in subclasses.
-        """
-        self.logger.debug('Nothing implemented here.')
+        self.brain = brain if brain else Brain('{}/brain'.format(home))
+        self.logger.info(self.brain)
 
-    # Convenience methods:
+
+
+    def delay(self):
+        '''Provide a second sleep'''
+        time.sleep(self.act_delay)
+
+    def housekeeping(self):
+        '''Import followers and friends from Twitter into the brain'''
+        self.lock.acquire('Housekeeping! This may take a while...')
+        try:
+            self.logger.info('Fetching followers...')
+            self.brain.import_users('follower', self.twitter.follower_ids)
+            self.logger.info('Fetching friends...')
+            self.brain.import_users('friend', self.twitter.friend_ids)
+        finally:
+            self.lock.release('Housekeeping done')
+
+
+
+    def is_awake(self):
+        ''':return: True when awake, otherwise false'''
+        return self.act_on_twitter and not self.sleep.is_acquired()
+
+    def wake_up(self, reason='no reason'):
+        ''':param reason: The reason to wake up'''
+        self.sleep.release('Waking up for {}'.format(reason))
+
+    def go_sleep(self, reason='no reason'):
+        ''':param reason: The reason to fall asleep'''
+        if not self.sleep.is_acquired():
+            self.sleep.acquire('Going to sleep for {}'.format(reason))
+        else:
+            self.logger.info('Already Sleeping.')
+
+
 
     def is_follower(self, user_id):
-        """
-        Indicate whether the user with the given user_id follows.
+        '''
+        :param user_id: The user ID to check
+        :return: True if the user is a follower, otherwise False
+        '''
+        return self.brain.find_user('follower', user_id)
 
-        :param user_id: The user_id to check
-        :return: True when the given user_id is a follower
-        """
-        return self.brain.has_user('follower', user_id)
+    def is_friend(self, user_id):
+        '''
+        :param user_id: The user ID to check
+        :return: True if the user is a friend, otherwise False
+        '''
+        return self.brain.find_user('friend', user_id)
 
-    def reply(self, tweet, status):
-        """
-        Send a reply to the given tweet.
 
-        Twitter want's the origin screen_name to be mentioned in
-        the status text when replying, otherwise it raises an error.
 
-        The placeholder "%name%" in a status text will be replaced
-        with the required screen_name.
+    def has_tweet(self, tweet_id):
+        '''
+        :param tweet_id: The tweet ID to check
+        :return: True if the tweet exists, otherwise False
+        '''
+        return self.brain.find_tweet(tweet_id)
 
-        :param tweet: The tweet to reply to
-        :param status: The status (text) to reply
-        """
-        # Prepare the required name to reply to:
-        required_name = '@{}'.format(tweet.user.screen_name)
-        # Replace placeholder, if any:
-        if '%name%' in status:
-            status = status.replace('%name%', required_name)
-        # If still not present, prepend the required name:
-        if required_name not in status:
-            status = '{}: {}'.format(required_name, status)
+    def remember_tweet(self, tweet_id):
+        ''':param tweet_id: The tweet ID to remember'''
+        self.brain.store_tweet(tweet_id)
 
-        if self.config.do_reply:
-            self.logger.debug('Reply: "%s"', status)
-            response = self.twitter.update_status(in_reply_to_status_id=tweet.id, status=status)
+
+
+    @staticmethod
+    def tweet_str(tweet):
+        '''
+        :param tweet: The tweet to stringify
+        :return: The tweet as string "@USERNAME/TWEET_ID"
+        '''
+        return '@{}/{}'.format(tweet.user.screen_name, tweet.id)
+
+
+
+    def get_new_mentions(self):
+        ''':return: New mentions without possible advises'''
+        mentions = []
+        for mention in self.twitter.mentions_timeline():
+
+            if str(mention.user.screen_name) == str(self.twitter.screen_name):
+                # Ignore mentions from myself:
+                self.logger.debug('%s was by me.', Robot.tweet_str(mention))
+                continue
+
+            if self.has_tweet(mention.id):
+                # Do not read a mention twice:
+                self.logger.debug('%s was read before.', Robot.tweet_str(mention))
+                continue
+
+            if self.apply_advise(mention):
+                # Remember read advises:
+                self.remember_tweet(mention)
+
+            else:
+                mentions.append(mention)
+
+        return mentions
+
+
+
+    def apply_advise(self, mention):
+        '''
+        :param mention: The mention to expect an advise from
+        :return: True if an advise was followed, otherwise False
+        '''
+        if str(mention.user.id) not in self.advisors:
+            self.logger.debug('@%s is not an advisor.', mention.user.screen_name)
+            return False
+        trigger = '@{}!'.format(self.twitter.screen_name.lower())
+        if not mention.text.lower().startswith(trigger):
+            self.logger.debug('@%s gave no advice trigger.', mention.user.screen_name)
+            return False
+        advice = mention.text[len(trigger):].strip()
+        if advice.lower().startswith('START'.lower()):
+            self.logger.debug('@%s gave advice START.', mention.user.screen_name)
+            self.wake_up(mention.user.screen_name)
+            self.reply(mention, 'Ok, ich starte... (auto-reply)')
+            return True
+        if advice.lower().startswith('STOP'.lower()):
+            self.logger.debug('@%s gave advice STOP.', mention.user.screen_name)
+            self.go_sleep(mention.user.screen_name)
+            self.reply(mention, 'Ok, ich stoppe... (auto-reply)')
+            return True
+        self.logger.debug('@%s gave no advice.', mention.user.screen_name)
+        return False
+
+
+
+    def reply(self, tweet, text):
+        '''
+        :param tweet: The mention to reply to
+        :param text: The text to reply
+        '''
+        if self.act_on_twitter:
+            reply_status = self.build_reply_status(tweet, text)
+            self.logger.info('Reply: "%s"', reply_status)
+            response = self.twitter.update_status(in_reply_to_status_id=tweet.id, text=reply_status)
             self.logger.debug('Reply response: %s', response)
         else:
-            self.logger.debug('Would reply: "%s"', status)
+            self.logger.info('I HAVE NOT replied on Twitter!')
 
-    def retweet(self, tweet):
-        """
-        Retweet the given tweet.
+    def build_reply_status(self, tweet, text):
+        '''
+        Twitter want's a reply to contain the user.screen_name of the
+        origin tweet in the reply status text.
 
-        :param tweet: The tweet to be retweeted
-        """
-        if self.config.do_retweet:
-            self.logger.debug('Retweet: @%s/%s.', tweet.user.screen_name, tweet.id)
-            response = self.twitter.retweet(tweet.id)
-            self.logger.debug('Retweet response: %s', response)
-        else:
-            self.logger.debug('Would retweet: @%s/%s.', tweet.user.screen_name, tweet.id)
+        :param tweet: The tweet to reply to
+        :param text: The text to reply
+        :return: The text to reply with definitely mention of the origin
+        '''
+        required_name = '@{}'.format(tweet.user.screen_name)
+        if required_name not in text:
+            self.logger.debug('Adding @%s to text"', required_name)
+            text = '{0} {1}'.format(required_name, text)
+        return text

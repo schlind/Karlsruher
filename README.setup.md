@@ -1,26 +1,33 @@
-# Karlsruher Twitter Robot
-Karlsruher is a robot on Twitter that retweets followers who mention its name.
+# @Karlsruher
+* is a robot on Twitter ([Link](https://twitter.com/Karlsruher))
+* retweets mentions from its followers when they apply some rules
+---
 
-## Setup
-Install the latest version into Python 3 library:
+## Setup instructions
+
+#### Prerequisites:
+* Python 3 environment (tested with 3.5 on Linux, 3.8.5 MacOS)
+* The Robot needs a home directory for its work
+* You need [Twitter API credentials](https://developer.twitter.com) for your Robot
+
+#### Install the latest release into your Python 3 library:
 ```bash
-python3 -m pip install -U --user --pre karlsruher
+$ python3 -m pip install -U --user --pre karlsruher
 ```
-*Still in Beta mode: you need to use --pre and expect a moving target.*
+*Still in Beta mode: --pre and expect a moving target!*
 
-### The Robot needs:
-+ a *ROBOT_HOME* directory:
-    + database file: *ROBOT_HOME/brain*
-    + lock file: *ROBOT_HOME/lock*
-+ [Twitter API credentials](https://developer.twitter.com)
-    + in file *ROBOT_HOME/auth.yaml*
-#### Create ROBOT_HOME and auth.yaml:
+#### Create a home directory
+You might want to use a different path here:
 ```bash
 export ROBOT_HOME=$HOME/karlsruher
 mkdir -p $ROBOT_HOME
-
+```
+#### Create auth.yaml credentials file
+You want to enter your own credentials here:
+```bash
+export ROBOT_HOME=$HOME/karlsruher
 cat >$ROBOT_HOME/auth.yaml <<EOF
-# You must setup real credentials here:
+# You must enter real credentials here:
 twitter:
   consumer:
     key: 'YOUR-CONSUMER-KEY'
@@ -30,24 +37,18 @@ twitter:
     secret: 'YOUR-ACCESS-SECRET'
 EOF
 ```
-#### Populate the database (brain)
-The Robot needs to know its *followers*. 
-Due to Twitter API rate limits, fetching followers may take up to 1 hour per 1000 followers.
-So if you have the time, import followers:
-```bash
-export ROBOT_HOME=$HOME/karlsruher
-karlsruher --home=$ROBOT_HOME -housekeeping [-debug]
-```
-*Run this once per day, nightly!*
 
-Once the Robot has followers imported, it can start to read its mention timeline:
+#### Setup complete
+
+## First run
+#### The Robot needs to fetch its followers and friends from Twitter regularly, run this initially and once per day:
 ```bash
 export ROBOT_HOME=$HOME/karlsruher
-karlsruher --home=$ROBOT_HOME -read [-debug]
+karlsruher --home=$ROBOT_HOME -housekeeping
 ```
-If you're brave enough, go wild and let the Robot read its mention timeline *and* retweeting all appropriate tweets.
+
+#### To just perfom the desired retweet feature, run this at any interval:
 ```bash
 export ROBOT_HOME=$HOME/karlsruher
-karlsruher --home=$ROBOT_HOME -talk [-debug]
+karlsruher --home=$ROBOT_HOME
 ```
-*Run this every 5 minutes or whatever interval you like.*

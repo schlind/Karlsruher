@@ -24,6 +24,7 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.9',
         'License :: Public Domain',
         'Topic :: Artistic Software',
         'Topic :: Internet',
@@ -35,9 +36,7 @@ setup(
     keywords='twitter robot bot retweet cronjob',
     packages=find_packages(),
     python_requires='>=3.4, <4',
-    install_requires=['pyaml>=5.1', 'tweepy==3.7'],
-    # setup_requires=['pytest-runner', 'pylint-runner'],
-    # tests_require=['pytest','pytest-cov','pylint'],
+    install_requires=['pyaml>=5.1', 'tweepy==3.9'],
     extras_require={
         'dev': ['check-manifest'],
         'test': ['pytest', 'pytest-cov', 'pylint'],
