@@ -2,7 +2,7 @@
 Version information
 '''
 
-__version__ = '2.1b3'
+__version__ = '2.1b4'
 
 if __name__ == '__main__':
     print(__version__)

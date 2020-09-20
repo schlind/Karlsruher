@@ -150,8 +150,7 @@ class Robot:
 
         return mentions
 
-
-
+    # pylint: disable=lost-exception
     def apply_advise(self, mention):
         '''
         :param mention: The mention to expect an advise from
@@ -168,13 +167,17 @@ class Robot:
         if advice.lower().startswith('START'.lower()):
             self.logger.debug('@%s gave advice START.', mention.user.screen_name)
             self.wake_up(mention.user.screen_name)
-            self.reply(mention, 'Ok, ich starte... (auto-reply)')
-            return True
+            try:
+                self.reply(mention, 'Ok, ich starte... (auto-reply)')
+            finally:
+                return True
         if advice.lower().startswith('STOP'.lower()):
             self.logger.debug('@%s gave advice STOP.', mention.user.screen_name)
             self.go_sleep(mention.user.screen_name)
-            self.reply(mention, 'Ok, ich stoppe... (auto-reply)')
-            return True
+            try:
+                self.reply(mention, 'Ok, ich stoppe... (auto-reply)')
+            finally:
+                return True
         self.logger.debug('@%s gave no advice.', mention.user.screen_name)
         return False
 
@@ -196,7 +199,7 @@ class Robot:
             except Exception as error:
                 self.logger.error(error)
         else:
-                self.logger.info('I HAVE NOT replied on Twitter!')
+            self.logger.info('I HAVE NOT replied on Twitter!')
 
     def build_reply_status(self, tweet, text):
         '''
