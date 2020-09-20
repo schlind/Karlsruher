@@ -1,4 +1,4 @@
-#### Hallo, ich bin der 
+### Hallo, ich bin der 
 ## [\@Karlsruher Retweet Bot](https://twitter.com/Karlsruher "Karlsruher RT Bot")!
 
 __Ich retweete automatisch alle Tweets meiner Follower, die mich erwähnen.__
