@@ -2,8 +2,11 @@
 KarlsruherTest
 '''
 
+from unittest import mock
+
 from karlsruher.common import LockException
 from karlsruher.karlsruher import Karlsruher
+from karlsruher.twitter import TwitterException
 from .robot_test import RobotTestCase
 
 class KarlsruherTest(RobotTestCase):
@@ -39,3 +42,14 @@ class KarlsruherTest(RobotTestCase):
         self.bot.act_on_twitter = True
         self.assertTrue(self.bot.retweet_applies(self.tweet_by_follower_2))
         self.assertEqual(1, self.bot.twitter.retweet.call_count)
+
+    def test_error_handling_retweet(self):
+        '''Exceptions must not stop process in loop'''
+        self.bot.twitter.retweet = mock.Mock(side_effect=TwitterException('Expect me!'))
+        self.bot.act_delay = 0
+        self.bot.has_tweet = mock.Mock(return_value=False)
+        self.bot.feature_retweets()
+        self.bot.feature_retweets()
+        self.bot.has_tweet = mock.Mock(return_value=True)
+        self.bot.feature_retweets()
+        self.assertEqual(4, self.bot.twitter.retweet.call_count)

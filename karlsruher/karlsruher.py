@@ -63,6 +63,8 @@ class Karlsruher(Robot):
             self.logger.debug('Retweeting: %s', Robot.tweet_str(mention))
             response = self.twitter.retweet(mention.id)
             self.logger.debug('Retweet response: %s', response)
+        except TwitterException as twitter_error:
+            self.logger.debug(twitter_error)
         finally:
             # Do not flood Twitter with retweets:
             self.delay()

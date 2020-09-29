@@ -171,22 +171,14 @@ class Robot:
         if advise.lower().startswith('START'.lower()):
             self.logger.debug('@%s gave advise START.', mention.user.screen_name)
             self.wake_up(mention.user.screen_name)
-            try:
-                self.reply(mention, 'Ok, ich starte... (auto-reply)')
-            except TwitterException as twitter_exception:
-                self.logger.error(twitter_exception)
-            finally:
-                return True
+            self.reply(mention, 'Ok, ich starte... (auto-reply)')
+            return True
 
         if advise.lower().startswith('STOP'.lower()):
             self.logger.debug('@%s gave advise STOP.', mention.user.screen_name)
             self.go_sleep(mention.user.screen_name)
-            try:
-                self.reply(mention, 'Ok, ich stoppe... (auto-reply)')
-            except TwitterException as twitter_exception:
-                self.logger.error(twitter_exception)
-            finally:
-                return True
+            self.reply(mention, 'Ok, ich stoppe... (auto-reply)')
+            return True
 
         self.logger.debug('@%s gave no advise.', mention.user.screen_name)
         return False
@@ -200,10 +192,13 @@ class Robot:
         '''
         if self.act_on_twitter:
             reply_status = self.build_reply_status(tweet, text)
-            self.logger.info('Reply: "%s"', reply_status)
-            response = self.twitter.update_status(
-                in_reply_to_status_id=tweet.id, text=reply_status)
-            self.logger.debug('Reply response: %s', response)
+            try:
+                self.logger.info('Reply: "%s"', reply_status)
+                response = self.twitter.update_status(
+                    in_reply_to_status_id=tweet.id, text=reply_status)
+                self.logger.debug('Reply response: %s', response)
+            except TwitterException as twitter_exception:
+                self.logger.debug(twitter_exception)
         else:
             self.logger.info('I HAVE NOT replied on Twitter!')
 

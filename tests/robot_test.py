@@ -9,6 +9,7 @@ from unittest import TestCase
 from karlsruher.common import LockException
 from karlsruher.brain import Brain
 from karlsruher.robot import Robot
+from karlsruher.twitter import TwitterException
 
 class RobotTestCase(TestCase):
     '''TestCase for Robot'''
@@ -256,3 +257,10 @@ class RobotTest(RobotTestCase):
         self.bot.remember_tweet(mentions[3].id)
         mentions = self.bot.get_new_mentions()
         self.assertEqual(5, len(mentions))
+
+    def test_error_handling_advise(self):
+        '''Exceptions must not stop process'''
+        self.bot.twitter.update_status = mock.Mock(side_effect=TwitterException('Expect me!'))
+        self.assertTrue(self.bot.apply_advise(self.tweet_advise_stop))
+        self.assertTrue(self.bot.apply_advise(self.tweet_advise_start))
+        self.assertEqual(2, self.bot.twitter.update_status.call_count)

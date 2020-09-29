@@ -7,8 +7,6 @@ import tweepy
 
 from .tweepyx import tweepyx
 
-class TwitterException(Exception):
-    '''Mask TweepyErrot'''
 
 class Twitter: # pragma: no cover
     '''Proxy for tweepy'''
@@ -97,3 +95,6 @@ class Twitter: # pragma: no cover
         except tweepy.error.TweepError as tweep_error:
             self.logger.error(tweep_error)
             raise TwitterException from tweep_error
+
+class TwitterException(Exception):
+    '''Mask tweepy.error.TweepError'''
