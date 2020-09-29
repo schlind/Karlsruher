@@ -3,6 +3,8 @@ Karlsruher Twitter Robot Personality
 '''
 
 from .robot import Robot
+from .twitter import TwitterException
+
 
 class Karlsruher(Robot):
     '''Robot to perform the famous @Karlsruher retweet feature'''
@@ -17,6 +19,8 @@ class Karlsruher(Robot):
                         self.logger.info('%s retweeted.', Robot.tweet_str(mention))
                     else:
                         self.logger.info('%s ignored.', Robot.tweet_str(mention))
+                except TwitterException as twitter_error:
+                    self.logger.debug(twitter_error)
                 finally:
                     # All mentions handled by this feature are remembered:
                     self.remember_tweet(mention.id)
@@ -54,16 +58,13 @@ class Karlsruher(Robot):
             self.logger.debug('@%s read during sleep.', mention.user.screen_name)
             return True
 
-        # Retweeting on Twitter:
-        self.logger.debug('Retweeting: %s', Robot.tweet_str(mention))
         try:
+            # Retweeting on Twitter:
+            self.logger.debug('Retweeting: %s', Robot.tweet_str(mention))
             response = self.twitter.retweet(mention.id)
             self.logger.debug('Retweet response: %s', response)
+        finally:
+            # Do not flood Twitter with retweets:
+            self.delay()
 
-        # pylint: disable=broad-except
-        except Exception as error:
-            self.logger.error(error)
-
-        # Do not flood Twitter with retweets:
-        self.delay()
         return True

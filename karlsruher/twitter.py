@@ -7,6 +7,9 @@ import tweepy
 
 from .tweepyx import tweepyx
 
+class TwitterException(Exception):
+    '''Mask TweepyErrot'''
+
 class Twitter: # pragma: no cover
     '''Proxy for tweepy'''
 
@@ -24,6 +27,7 @@ class Twitter: # pragma: no cover
             return self.api.me()
         except tweepy.error.TweepError as tweep_error:
             self.logger.error(tweep_error)
+            raise TwitterException from tweep_error
 
     def mentions_timeline(self): # pragma: no cover
         ''':return: The mentions timeline'''
@@ -31,6 +35,7 @@ class Twitter: # pragma: no cover
             return self.api.mentions_timeline()
         except tweepy.error.TweepError as tweep_error:
             self.logger.error(tweep_error)
+            raise TwitterException from tweep_error
 
     def list_members(self, screen_name, list_slug): # pragma: no cover
         ''':return: List of members of the specified list'''
@@ -42,6 +47,7 @@ class Twitter: # pragma: no cover
                 yield member
         except tweepy.error.TweepError as tweep_error:
             self.logger.error(tweep_error)
+            raise TwitterException from tweep_error
 
     def follower_ids(self): # pragma: no cover
         ''':return: List of twitter user_ids who follow the robot'''
@@ -51,6 +57,7 @@ class Twitter: # pragma: no cover
                 yield follower_id
         except tweepy.error.TweepError as tweep_error:
             self.logger.error(tweep_error)
+            raise TwitterException from tweep_error
 
     def friend_ids(self): # pragma: no cover
         ''':return: List of twitter user_ids who the robot follows'''
@@ -60,6 +67,7 @@ class Twitter: # pragma: no cover
                 yield friend_id
         except tweepy.error.TweepError as tweep_error:
             self.logger.error(tweep_error)
+            raise TwitterException from tweep_error
 
     def retweet(self, tweet_id): # pragma: no cover
         '''
@@ -70,6 +78,7 @@ class Twitter: # pragma: no cover
             return self.api.retweet(tweet_id)
         except tweepy.error.TweepError as tweep_error:
             self.logger.error(tweep_error)
+            raise TwitterException from tweep_error
 
     def update_status(self, text, in_reply_to_status_id=None): # pragma: no cover
         '''
@@ -87,3 +96,4 @@ class Twitter: # pragma: no cover
             return self.api.update_status(status=text)
         except tweepy.error.TweepError as tweep_error:
             self.logger.error(tweep_error)
+            raise TwitterException from tweep_error

@@ -8,8 +8,9 @@ import time
 
 from .brain import Brain
 from .common import Lock
-from .twitter import Twitter
+from .twitter import Twitter, TwitterException
 from .__version__ import __version__
+
 
 class Robot:
     '''Base class for Twitter robots'''
@@ -172,6 +173,8 @@ class Robot:
             self.wake_up(mention.user.screen_name)
             try:
                 self.reply(mention, 'Ok, ich starte... (auto-reply)')
+            except TwitterException as twitter_exception:
+                self.logger.error(twitter_exception)
             finally:
                 return True
 
@@ -180,6 +183,8 @@ class Robot:
             self.go_sleep(mention.user.screen_name)
             try:
                 self.reply(mention, 'Ok, ich stoppe... (auto-reply)')
+            except TwitterException as twitter_exception:
+                self.logger.error(twitter_exception)
             finally:
                 return True
 

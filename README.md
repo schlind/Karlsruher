@@ -12,9 +12,6 @@ Followers can share and relay information via the Robot without the need to foll
 The software works with any Twitter account, so one may have simply own ideas...
 
 Hopefully clean-coded, self-explaining and reusable [Python 3](https://www.python.org/) using [Tweepy](https://www.tweepy.org/) as Twitter client and [SQLite](https://www.sqlite.org/) as database brain.
-#### Quality goals
-+ Test coverage: 100% ([.coveragerc](.coveragerc))
-+ pylint rating: 10/10 ([pylintrc](pylintrc))
 
 ## Read on
 * [Insights for Developers](README.developer.md)
