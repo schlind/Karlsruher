@@ -226,6 +226,15 @@ class RobotTest(RobotTestCase):
         self.assertTrue(self.bot.has_tweet(123))
         self.assertEqual('@follower_1/1234567892', Robot.tweet_str(self.tweet_by_follower_1))
 
+    def test_can_tweet(self):
+        '''Must tweet'''
+        self.bot.act_on_twitter = False
+        self.bot.tweet('Hello!')
+        self.assertEqual(0, self.bot.twitter.update_status.call_count)
+        self.bot.act_on_twitter = True
+        self.bot.tweet('Hello!')
+        self.assertEqual(1, self.bot.twitter.update_status.call_count)
+
     def test_can_build_reply_status(self):
         '''Must build reply status'''
         user_name = self.tweet_advise_unknown.user.screen_name

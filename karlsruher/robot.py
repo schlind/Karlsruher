@@ -4,6 +4,7 @@ Twitter Robot
 
 import logging
 import os
+import sys
 import time
 
 from .brain import Brain
@@ -45,6 +46,9 @@ class Robot:
             self.logger.debug('@%s is an advisor.', advisor.screen_name)
             self.advisors.append(str(advisor.id))
         self.logger.info('I am having %s advisors.', len(self.advisors))
+
+        if '-noact' in sys.argv:
+            self.act_on_twitter = False
 
         if not self.is_awake():
             self.logger.info('SLEEPING: I am NOT acting on Twitter!')
@@ -185,26 +189,31 @@ class Robot:
 
 
 
+    def tweet(self, text, in_reply_to_status_id=None):
+        ''':param text: The text to tweet'''
+        if self.act_on_twitter:
+            try:
+                self.logger.info('Tweet: "%s"', text)
+                response = self.twitter.update_status(
+                    text=text,
+                    in_reply_to_status_id=in_reply_to_status_id
+                )
+                self.logger.debug('Tweet response: %s', response)
+            except TwitterException as twitter_exception:
+                self.logger.debug(twitter_exception)
+        else:
+            self.logger.info('I HAVE NOT tweeted on Twitter!')
+
     def reply(self, tweet, text):
         '''
         :param tweet: The mention to reply to
         :param text: The text to reply
         '''
-        if self.act_on_twitter:
-            reply_status = self.build_reply_status(tweet, text)
-            try:
-                self.logger.info('Reply: "%s"', reply_status)
-                response = self.twitter.update_status(
-                    in_reply_to_status_id=tweet.id, text=reply_status)
-                self.logger.debug('Reply response: %s', response)
-            except TwitterException as twitter_exception:
-                self.logger.debug(twitter_exception)
-        else:
-            self.logger.info('I HAVE NOT replied on Twitter!')
+        self.tweet(self.build_reply_status(tweet, text), tweet.id)
 
     def build_reply_status(self, tweet, text):
         '''
-        Twitter want's a reply to contain the user.screen_name of the
+        Twitter wants a reply to contain the user.screen_name of the
         origin tweet in the reply status text.
 
         :param tweet: The tweet to reply to

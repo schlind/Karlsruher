@@ -30,7 +30,7 @@ class Twitter: # pragma: no cover
     def mentions_timeline(self): # pragma: no cover
         ''':return: The mentions timeline'''
         try:
-            return self.api.mentions_timeline()
+            return self.api.mentions_timeline(count=200)
         except tweepy.error.TweepError as tweep_error:
             self.logger.error(tweep_error)
             raise TwitterException from tweep_error
