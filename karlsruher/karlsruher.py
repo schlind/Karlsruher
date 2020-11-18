@@ -99,15 +99,6 @@ class Karlsruher:
         # Log status:
         self.logger.info(self)
 
-        # Housekeeping, if requested:
-        if '-housekeeping' in sys.argv:
-            self.housekeeping()
-
-        if '-wakeup' in sys.argv:
-            self.wake_up('console')
-        if '-sleep' in sys.argv:
-            self.go_sleep('console')
-
 
 
     def __repr__(self):

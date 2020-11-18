@@ -37,10 +37,14 @@ if __name__ == '__main__':
         sys.exit(0)
 
     karlsruher = Karlsruher()
-
+    if '-housekeeping' in sys.argv:
+        karlsruher.housekeeping()
+    if '-wakeup' in sys.argv:
+        karlsruher.wake_up('console')
+    if '-sleep' in sys.argv:
+        karlsruher.go_sleep('console')
     if '-read' in sys.argv:
         read_mentions(karlsruher)
-
     if '-retweet' in sys.argv:
         retweet_mentions(karlsruher)
 
