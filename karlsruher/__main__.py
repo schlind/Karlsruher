@@ -12,8 +12,10 @@ from karlsruher import retweet_mentions
 
 
 
-if __name__ == '__main__':
-
+def main():
+    '''
+    Main function.
+    '''
     if '-debug' in sys.argv:
         logging.basicConfig(
             level=logging.DEBUG,
@@ -27,16 +29,16 @@ if __name__ == '__main__':
             handlers=[logging.StreamHandler()]
         )
 
-
     if len(sys.argv) == 1 or '-help' in sys.argv:
         print(CONSOLE_HELP_TEXT)
-        sys.exit(0)
+        return 0
 
     if '-version' in sys.argv:
         print(CONSOLE_HELP_TEXT.splitlines()[0])
-        sys.exit(0)
+        return 0
 
     karlsruher = Karlsruher()
+
     if '-housekeeping' in sys.argv:
         karlsruher.housekeeping()
     if '-wakeup' in sys.argv:
@@ -48,4 +50,7 @@ if __name__ == '__main__':
     if '-retweet' in sys.argv:
         retweet_mentions(karlsruher)
 
-    sys.exit(0)
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main())
