@@ -37,20 +37,29 @@ def main():
         print(CONSOLE_HELP_TEXT.splitlines()[0])
         return 0
 
-    karlsruher = Karlsruher()
+    try:
+        karlsruher = Karlsruher()
 
-    if '-housekeeping' in sys.argv:
-        karlsruher.housekeeping()
-    if '-wakeup' in sys.argv:
-        karlsruher.wake_up('console')
-    if '-sleep' in sys.argv:
-        karlsruher.go_sleep('console')
-    if '-read' in sys.argv:
-        read_mentions(karlsruher)
-    if '-retweet' in sys.argv:
-        retweet_mentions(karlsruher)
+        if '-housekeeping' in sys.argv:
+            karlsruher.housekeeping()
+        if '-wakeup' in sys.argv:
+            karlsruher.wake_up('console')
+        if '-sleep' in sys.argv:
+            karlsruher.go_sleep('console')
+        if '-read' in sys.argv:
+            read_mentions(karlsruher)
+        if '-retweet' in sys.argv:
+            retweet_mentions(karlsruher)
 
-    return 0
+        return 0
+
+    except NotADirectoryError as not_a_dir_error:
+        print(not_a_dir_error)
+        return 1
+    except RuntimeError as runtime_error:
+        print(runtime_error)
+        return 1
+
 
 if __name__ == '__main__':
     sys.exit(main())
