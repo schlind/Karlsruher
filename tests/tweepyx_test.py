@@ -1,7 +1,7 @@
-# Karlsruher Twitter Robot
+# MentionRetweeter Twitter Karlsruher
 # https://github.com/schlind/Karlsruher
 '''
-Test tweepy extension
+Test api extension
 '''
 
 import contextlib, io, os, sys, tempfile
@@ -78,7 +78,7 @@ class TweepyXTest(TestCase):
     def test345(self):
         '''Get API instance'''
         with managed_io() as (stdio):
-            self.assertTrue(tweepyx.API(auth_yaml=self.yaml_file.name) is not None)
+            self.assertTrue(tweepyx.API(auth_yaml=self.yaml_file.name, create_on_demand=True) is not None)
 
     @patch('builtins.input', mock.Mock(side_effect=['consumerkey','consumersecret','pin']))
     @patch('tweepy.OAuthHandler', mock.Mock())

@@ -1,5 +1,5 @@
 '''
-Convenience extension for easy tweepy.API creation
+Convenience extension for easy api.API creation
 '''
 
 import os
@@ -29,10 +29,10 @@ twitter:
 
 
     @staticmethod
-    def API(auth_yaml, create_file_on_demand=True):
-        ''':return: The authenticated tweepy.API instance'''
+    def API(auth_yaml, create_on_demand=False):
+        ''':return: The authenticated api.API instance'''
 
-        if create_file_on_demand:
+        if create_on_demand:
             tweepyx.create_auth_yaml_on_demand(auth_yaml)
 
         if not os.path.isfile(auth_yaml):

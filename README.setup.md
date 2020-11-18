@@ -50,5 +50,24 @@ karlsruher --home=$ROBOT_HOME -housekeeping
 #### To just perfom the desired retweet feature, run this at any interval:
 ```bash
 export ROBOT_HOME=$HOME/karlsruher
-karlsruher --home=$ROBOT_HOME
+karlsruher --home=$ROBOT_HOME -retweet 
+```
+
+#### Crontab example:
+```
+*/5 * * * * karlsruher --home=ROBOT_HOME -retweet >>ROBOT_HOME/log 2>&1
+3 3 * * *   karlsruher --home=ROBOT_HOME -housekeeping >>ROBOT_HOME/log 2>&1
+```
+
+#### Simple logfile rotation:
+
+```
+# cat /etc/logrotate.d/karlsruher
+ROBOT_HOME/log {
+        rotate 7
+        daily
+        compress
+        missingok
+        notifempty
+}
 ```

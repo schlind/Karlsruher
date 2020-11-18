@@ -5,13 +5,15 @@ Main function, logging configuration, run application
 import logging
 import sys
 
-import karlsruher
+from karlsruher import Karlsruher
+from karlsruher import CONSOLE_HELP_TEXT
+from karlsruher import read_mentions
+from karlsruher import retweet_mentions
 
-def main():
-    '''
-    :return: The exit-code of the commandline
-    :rtype: int
-    '''
+
+
+if __name__ == '__main__':
+
     if '-debug' in sys.argv:
         logging.basicConfig(
             level=logging.DEBUG,
@@ -24,8 +26,22 @@ def main():
             format='%(asctime)s [%(funcName)s]: %(message)s',
             handlers=[logging.StreamHandler()]
         )
-    return karlsruher.CommandLine.run()
 
 
-if __name__ == '__main__':
-    sys.exit(main())
+    if len(sys.argv) == 1 or '-help' in sys.argv:
+        print(CONSOLE_HELP_TEXT)
+        sys.exit(0)
+
+    if '-version' in sys.argv:
+        print(CONSOLE_HELP_TEXT.splitlines()[0])
+        sys.exit(0)
+
+    karlsruher = Karlsruher()
+
+    if '-read' in sys.argv:
+        read_mentions(karlsruher)
+
+    if '-retweet' in sys.argv:
+        retweet_mentions(karlsruher)
+
+    sys.exit(0)
