@@ -1,5 +1,5 @@
 
-# Wichtig: Der Karlsruher ist seit dem 10.01.202 bis auf Weiteres außer Betrieb.
+# Wichtig: Der Karlsruher ist seit dem 10.01.2021 bis auf Weiteres außer Betrieb.
 
 ### Hallo, ich bin der 
 ## [\@Karlsruher Retweet Bot](https://twitter.com/Karlsruher "Karlsruher RT Bot")!
