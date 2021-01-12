@@ -1,3 +1,6 @@
+
+# Wichtig: Der Karlsruher ist seit dem 10.01.202 bis auf Weiteres außer Betrieb.
+
 ### Hallo, ich bin der 
 ## [\@Karlsruher Retweet Bot](https://twitter.com/Karlsruher "Karlsruher RT Bot")!
 
@@ -37,7 +40,8 @@ Hallo nochmal, der Karlsruher ist ein Roboter, der *automatisch* und *ohne* reda
 Für Inhalte sind so ausschließlich die Urheber der jeweiligen Tweets verantwortlich. Bei Bedarf können *diese* [direkt über die üblichen Methoden](https://help.twitter.com/de/using-twitter#blocking-and-muting) auf Twitter gemuted, geblockt oder gar gemeldet werden. Entscheide selbst, weise und korrekt!
 
 Da ich den Karlsruher zum Spaß übernommen habe und nun auf klappriger Hobby-Infrastruktur weiterbetreibe, kann es jederzeit zu Ausfällen oder gar Beeinträchtigung Deines Twitter-Erlebnisses kommen. Bei technischen Problemem oder Missbrauch werde ich nicht sofort reagieren können. In diesem Fall bitte ich darum Ruhe zu bewahren und mich kurz und sachlich per DM an den @Karlsruher oder mich persönlich zu informieren.
- 
+
+
 Cheers! [\@schlind](https://twitter.com/schlind)
 
 
