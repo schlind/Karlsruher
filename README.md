@@ -1,6 +1,7 @@
 # @Karlsruher
 * is a robot on Twitter ([Link](https://twitter.com/Karlsruher))
 * retweets mentions from its followers when they apply some rules
+* deletes tweets after some time to keep own timeline clean
 ---
 
 ## Social Networking Feature

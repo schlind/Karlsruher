@@ -9,8 +9,7 @@ from karlsruher import Karlsruher
 from karlsruher import CONSOLE_HELP_TEXT
 from karlsruher import read_mentions
 from karlsruher import retweet_mentions
-
-
+from karlsruher import delete_aged_tweets
 
 def main():
     '''
@@ -50,6 +49,8 @@ def main():
             read_mentions(karlsruher)
         if '-retweet' in sys.argv:
             retweet_mentions(karlsruher)
+        if '-forget' in sys.argv:
+            delete_aged_tweets(karlsruher)
 
         return 0
 

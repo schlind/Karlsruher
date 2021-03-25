@@ -36,7 +36,7 @@ setup(
     keywords='twitter robot bot retweet cronjob',
     packages=find_packages(),
     python_requires='>=3.4, <4',
-    install_requires=['pyaml>=5.1', 'tweepy==3.9'],
+    install_requires=['pyaml>=5.1', 'tweepy==3.10'],
     extras_require={
         'dev': ['check-manifest'],
         'test': ['pytest', 'pytest-cov', 'pylint'],

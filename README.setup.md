@@ -41,21 +41,29 @@ EOF
 #### Setup complete
 
 ## First run
-#### The Robot needs to fetch its followers and friends from Twitter regularly, run this initially and once per day:
+#### The Robot needs to fetch its followers and friends from Twitter regularly. Run this initially and then once per day:
 ```bash
 export ROBOT_HOME=$HOME/karlsruher
 karlsruher --home=$ROBOT_HOME -housekeeping
 ```
 
-#### To just perfom the desired retweet feature, run this at any interval:
+#### To just perfom the desired retweet feature run this at your desired interval:
 ```bash
 export ROBOT_HOME=$HOME/karlsruher
 karlsruher --home=$ROBOT_HOME -retweet 
 ```
 
+### To delete aged tweets run this:
+```bash
+export ROBOT_HOME=$HOME/karlsruher
+karlsruher --home=$ROBOT_HOME -forget 
+```
+
+
 #### Crontab example:
 ```
 */5 * * * * karlsruher --home=ROBOT_HOME -retweet >>ROBOT_HOME/log 2>&1
+1 23 * * * karlsruher --home=ROBOT_HOME -forget >>ROBOT_HOME/log 2>&1
 3 3 * * *   karlsruher --home=ROBOT_HOME -housekeeping >>ROBOT_HOME/log 2>&1
 ```
 
