@@ -22,6 +22,7 @@ class BrainTest(TestCase):
 
     def test_can_store_entries_and_data(self):
         '''Brain must store entries'''
+        self.assertEqual('default', self.brain.get('test', 'void', 'default'))
         self.assertFalse(self.brain.has('test', 1))
         self.assertEqual(1, self.brain.store('test', 1))
         self.assertEqual(1, self.brain.store('test', 2, 'data'))

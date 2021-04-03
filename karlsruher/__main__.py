@@ -10,7 +10,10 @@ from karlsruher import CONSOLE_HELP_TEXT
 from karlsruher import read_mentions
 from karlsruher import retweet_mentions
 from karlsruher import delete_aged_tweets
+from karlsruher import rhein
 
+
+# pylint: disable=too-many-branches
 def main():
     '''
     Main function.
@@ -51,6 +54,8 @@ def main():
             retweet_mentions(karlsruher)
         if '-forget' in sys.argv:
             delete_aged_tweets(karlsruher)
+        if '-rhein' in sys.argv:
+            rhein(karlsruher)
 
         return 0
 

@@ -59,7 +59,7 @@ class Brain:
         return have
 
 
-    def get(self, space, entry):
+    def get(self, space, entry, default=None):
         '''
         Provide the data of the specified entry, implement a READ operation.
 
@@ -73,7 +73,7 @@ class Brain:
         )
         data = cursor.fetchone()
         self.logger.debug('%s %s %s', 'Having' if data else 'Not having', space, entry)
-        return data['data'] if data else None
+        return data['data'] if data else default
 
 
     # Create & update:
@@ -91,7 +91,7 @@ class Brain:
         cursor = self.connection.cursor()
         cursor.execute(
             'INSERT OR REPLACE INTO brain (space, entry, data) VALUES (?,?,?)',
-            (str(space), str(entry), data,)
+            (str(space), str(entry), str(data) if data else data,)
         )
         self.connection.commit()
         return cursor.rowcount
